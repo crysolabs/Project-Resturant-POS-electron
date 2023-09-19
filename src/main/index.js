@@ -9,7 +9,9 @@ function createWindow() {
     width: electron.screen.getPrimaryDisplay().workAreaSize.width,
     height: electron.screen.getPrimaryDisplay().workAreaSize.height,
     autoHideMenuBar: true,
-    icon: join(__dirname, '../../assets/icon.png'),
+
+    icon: join(__dirname, '../../build/resources/icon.png'),
+    title: import.meta.env.MAIN_VITE_APPNAME,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,

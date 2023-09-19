@@ -1,9 +1,9 @@
 {
-  "name": "skill-swap-clinet-app",
+  "name": "Skill-Swap",
   "version": "1.0.0",
-  "description": "An Electron application with React",
+  "description": "Skill Swap is a Application made with electron",
   "main": "./out/main/index.js",
-  "author": "example.com",
+  "author": "achiraGaming",
   "homepage": "https://www.electronjs.org",
   "scripts": {
     "format": "prettier --write .",
