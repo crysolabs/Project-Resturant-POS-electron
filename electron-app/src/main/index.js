@@ -1,18 +1,20 @@
 import { app, shell, BrowserWindow } from 'electron'
 import path, { join } from 'path'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { electronApp, optimizer } from '@electron-toolkit/utils'
+import electron from 'electron'
 
 function createWindow() {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
-    show: false,
+    width: electron.screen.getPrimaryDisplay().workAreaSize.width,
+    height: electron.screen.getPrimaryDisplay().workAreaSize.height,
     autoHideMenuBar: true,
-    icon: path.join(__dirname, '../../assets/icon.png'),
+    icon: join(__dirname, '../../assets/icon.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      nodeIntegration: false,
+      contextIsolation: true
     }
   })
 
@@ -27,11 +29,8 @@ function createWindow() {
 
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
-  } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-  }
+
+  mainWindow.loadURL(import.meta.env.MAIN_VITE_APPURI)
 }
 
 // This method will be called when Electron has finished
