@@ -1,71 +1,192 @@
-import { app, shell, BrowserWindow } from 'electron'
-import path, { join } from 'path'
-import { electronApp, optimizer } from '@electron-toolkit/utils'
-import electron from 'electron'
+// main.js
 
-function createWindow() {
-  // Create the browser window.
-  const mainWindow = new BrowserWindow({
-    width: electron.screen.getPrimaryDisplay().workAreaSize.width,
-    height: electron.screen.getPrimaryDisplay().workAreaSize.height,
-    autoHideMenuBar: true,
+import { app, shell, BrowserWindow, ipcMain } from 'electron';
+import { join, resolve } from 'path';
+import { electronApp, optimizer } from '@electron-toolkit/utils';
+import electron from 'electron';
+import { autoUpdater } from 'electron-updater';
 
-    icon: join(__dirname, '../../build/resources/icon.png'),
-    title: import.meta.env.MAIN_VITE_APPNAME,
-    webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
-      nodeIntegration: false,
-      contextIsolation: true
-    }
-  })
+// Configure the update feed URL (replace 'username' and 'repo' with your GitHub username and repository name).
+autoUpdater.setFeedURL({
+  provider: 'github',
+  owner: 'achira22',
+  repo: 'Skill-Swap',
+  releaseType: 'release'
+});
+autoUpdater.forceDevUpdateConfig = true;
+autoUpdater.autoDownload = true;
+autoUpdater.autoRunAppAfterInstall = true;
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
-  })
+/**Site Windoow */
+const siteWindow = class extends BrowserWindow {
+  constructor() {
+    super({
+      width: electron.screen.getPrimaryDisplay().workAreaSize.width,
+      height: electron.screen.getPrimaryDisplay().workAreaSize.height,
+      autoHideMenuBar: true,
+      icon: join(__dirname, '../../build/resources/icon.png'),
+      title: '',
+      show: false,
+      webPreferences: {
+        preload: join(__dirname, '../preload/index.js'),
+        sandbox: false,
+        nodeIntegration: false,
+        contextIsolation: true
+      }
+    });
+    const handleClose = () => {
+      this.destroy();
+    };
+    const handleRequestUpdate = () => {};
+    this.once('close', handleClose);
+    ipcMain.on('request-update', handleRequestUpdate);
+  }
+  async load() {
+    this.loadURL(import.meta.env.MAIN_VITE_APPURI);
+    await new Promise((resolve, reject) => {
+      this.once('ready-to-show', () => {
+        resolve();
+      });
+    });
+    this.show();
+  }
+};
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
-    return { action: 'deny' }
-  })
+/**Update Checker Window */
+const updateWindow = class extends BrowserWindow {
+  constructor() {
+    super({
+      height: 500,
+      width: 400,
+      resizable: false,
+      autoHideMenuBar: true,
+      show: false,
+      titleBarStyle: 'hidden',
+      focusable: false,
+      webPreferences: {
+        preload: join(__dirname, '../preload/index.js'),
+        sandbox: false,
+        nodeIntegration: false,
+        contextIsolation: true
+      }
+    });
+    this.retryies = 0;
+    this.retryTime = Number(import.meta.env.MAIN_VITE_RETRYTIME);
+    const handleClose = () => {
+      this.destroy();
+    };
+    this.once('close', handleClose);
+  }
+  async load() {
+    this.loadFile(join(__dirname, '../renderer/index.html'));
+    await new Promise((resolve, reject) => {
+      this.once('ready-to-show', () => {
+        resolve();
+      });
+    });
+    this.show();
+    await new Promise((resolve, reject) => {
+      this.checkUpdates(resolve, reject);
+    });
+    this.reset();
+    this.handleClearUpdates();
+    this.loadWindow();
+  }
+  handleClearUpdates() {
+    autoUpdater.removeAllListeners();
+  }
+  reset() {
+    this.retryies = 0;
+  }
+  async checkUpdates(resolve, reject) {
+    this.webContents.send('update', {
+      status: `Checking For Updates...`
+    });
+    autoUpdater.checkForUpdates();
+    autoUpdater.on('update-not-available', resolve);
+    autoUpdater.on('download-progress', (info) => {
+      const totalMb = info.total * 0.000001;
+      this.webContents.send('update', {
+        status: `Downloading Updates ${((info.percent * totalMb) / 100).toFixed(
+          2
+        )}Mb of ${totalMb.toFixed(2)}Mb`
+      });
+    });
+    autoUpdater.on('update-downloaded', () => {
+      this.installUpdates(resolve, reject);
+    });
+    autoUpdater.on('error', async () => {
+      await this.retry(resolve, reject);
+    });
+  }
+  async installUpdates(resolve, reject) {
+    const installMessage = () => {
+      const message = `Installing Updates in ${this.retryTime / 1000 - time}`;
+      this.webContents.send('update', {
+        status: message
+      });
+      time++;
+    };
+    let time = 0;
+    installMessage();
+    const timeInterval = setInterval(() => {
+      installMessage();
+    }, 1000);
+    await new Promise((resolve, reject) => {
+      setTimeout(() => {
+        resolve();
+      }, this.retryTime);
+    });
+    clearInterval(timeInterval);
+    autoUpdater.quitAndInstall();
+  }
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
+  async retry(resolve, reject) {
+    const retryMessage = () => {
+      const message = `Retrying in ${(this.retryTime / 1000) * this.retryies - time}`;
+      this.webContents.send('update', {
+        status: message
+      });
+      time++;
+    };
+    this.handleClearUpdates();
+    this.retryies++;
+    let time = 0;
+    retryMessage();
+    const timeInterval = setInterval(() => {
+      retryMessage();
+    }, 1000);
+    await new Promise((resolve, reject) => {
+      setTimeout(() => {
+        resolve();
+      }, this.retryies * this.retryTime);
+    });
+    clearInterval(timeInterval);
+    this.checkUpdates(resolve, reject);
+  }
+  async loadWindow() {
+    this.webContents.send('update', {
+      status: 'Starting...'
+    });
+    await new siteWindow().load();
+    this.close();
+  }
+};
 
-  mainWindow.loadURL(import.meta.env.MAIN_VITE_APPURI)
-}
-
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
-
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
+  electronApp.setAppUserModelId('com.electron');
   app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
-  })
-
-  createWindow()
-
+    optimizer.watchWindowShortcuts(window);
+  });
   app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
-})
+    if (BrowserWindow.getAllWindows().length === 0) new updateWindow().load();
+  });
+  new updateWindow().load();
+});
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    app.quit()
+    app.quit();
   }
-})
-
-// In this file you can include the rest of your app"s specific main process
-// code. You can also put them in separate files and require them here.
+});
