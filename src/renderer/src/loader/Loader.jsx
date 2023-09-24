@@ -9,10 +9,7 @@ const Loader = function ({ status, dispatch }) {
     const handleEvents = function (_, event) {
       dispatch({ type: 'setStatus', payload: event.status });
     };
-    window.electron.ipcRenderer.on('update', handleEvents);
-    return function () {
-      window.electron.ipcRenderer.removeAllListeners('update');
-    };
+    window.electronAPI.handleLoading(handleEvents);
   });
   return (
     <div id="loader" className="loader">
