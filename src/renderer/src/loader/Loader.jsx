@@ -10,7 +10,10 @@ const Loader = function ({ status, dispatch }) {
       dispatch({ type: 'setStatus', payload: event.status });
     };
     window.electronAPI.handleLoading(handleEvents);
-  });
+    return function () {
+      window.electronAPI.removehandleLoading(handleEvents);
+    };
+  }, []);
   return (
     <div id="loader" className="loader">
       <div className="loader-wrapper">

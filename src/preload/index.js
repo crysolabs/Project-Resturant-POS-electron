@@ -5,7 +5,9 @@ const electronEvents = class {
     this.functions = {
       installUpdates: () => ipcRenderer.send('install-updates'),
       handleLoading: (callback) => ipcRenderer.on('loading-status', callback),
-      handleUpdates: (callback) => ipcRenderer.on('update-info', callback)
+      removehandleLoading: (callback) => ipcRenderer.removeListener('loading-status', callback),
+      handleUpdates: (callback) => ipcRenderer.on('update-info', callback),
+      removehandleUpdates: (callback) => ipcRenderer.removeListener('update-info', callback)
     };
   }
 

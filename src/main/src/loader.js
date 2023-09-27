@@ -10,6 +10,7 @@ const loaderWindow = class extends BrowserWindow {
       show: false,
       titleBarStyle: 'hidden',
       focusable: true,
+      icon: join(__dirname, '../../build/resources/icon.png'),
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         nodeIntegration: true,
@@ -90,7 +91,7 @@ const loaderWindow = class extends BrowserWindow {
       time++;
     };
     this.handleClearUpdates();
-    this.retryies++;
+    this.retryTime / this.retryies !== 1000 && this.retryies++;
     let time = 0;
     retryMessage();
     const timeInterval = setInterval(() => {
