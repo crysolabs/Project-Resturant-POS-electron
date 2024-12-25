@@ -114,7 +114,7 @@ const loaderWindow = class extends BrowserWindow {
   }
 
   async load() {
-    this.loadFile(join(__dirname, '../renderer/index.html'));
+    this.loadFile(join(__dirname, '../renderer/loader/index.html'));
     await new Promise((resolve, reject) => {
       this.once('ready-to-show', () => {
         resolve();
