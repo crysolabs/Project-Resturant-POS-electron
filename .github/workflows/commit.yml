@@ -45,13 +45,26 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: npm run build:linux
         
-      - name: Upload artifacts
+      - name: Upload Windows artifacts
+        if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}-artifacts
+          name: windows-artifacts
+          path: dist/*.exe
+
+      - name: Upload MacOS artifacts
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifacts
+          path: dist/*.dmg
+
+      - name: Upload Linux artifacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
           path: |
-            dist/*.exe
-            dist/*.dmg
             dist/*.AppImage
             dist/*.snap
             dist/*.deb
@@ -59,12 +72,12 @@ jobs:
       - id: get_version
         run: |
           version=$(node -p 'require("./package.json").version')
-          echo "::set-output name=tag::$version"
+          echo "tag=$version" >> $GITHUB_ENV
 
       - id: get_preview
         run: |
           preview=$(node -p 'require("./package.json").preview ? "true" : "false"')
-          echo "::set-output name=preview::$preview"
+          echo "preview=$preview" >> $GITHUB_ENV
 
   release:
     needs: build
