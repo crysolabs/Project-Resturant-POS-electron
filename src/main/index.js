@@ -6,8 +6,7 @@ import { autoUpdater } from 'electron-updater';
 import siteWindow from './src/site';
 import loaderWindow from './src/loader';
 // Configure the update feed URL (replace 'username' and 'repo' with your GitHub username and repository name).
-const githubToken = import.meta.env.MAIN_VITE_GITHUB_TOKEN;
-console.log(githubToken);
+
 autoUpdater.setFeedURL({
   provider: 'github',
   owner: import.meta.env.MAIN_VITE_GITHUB_USERNAME,
