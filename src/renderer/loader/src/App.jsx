@@ -17,6 +17,7 @@ export default function App() {
   const [state, dispatch] = useReducer(reducer, initialValue);
 
   useEffect(function () {
+    document.title = state.status
     document.body.classList = 'dark';
   }, []);
   return (
