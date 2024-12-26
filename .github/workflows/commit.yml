@@ -46,7 +46,10 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
     outputs:
       tag: ${{ steps.get_version.outputs.tag }}
       preview: ${{ steps.get_preview.outputs.preview }}
@@ -88,4 +91,4 @@ jobs:
             Release v${{ steps.get_version.outputs.tag }}
           draft: false
           prerelease: ${{ steps.get_preview.outputs.preview == 'true' }}
-          artifacts: "artifacts/**/*"
+          artifacts: 'artifacts/**/*'
