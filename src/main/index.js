@@ -6,13 +6,14 @@ import { autoUpdater } from 'electron-updater';
 import siteWindow from './src/site';
 import loaderWindow from './src/loader';
 // Configure the update feed URL (replace 'username' and 'repo' with your GitHub username and repository name).
+import packageJson from '../../package.json';
 
 autoUpdater.setFeedURL({
   provider: 'github',
   owner: import.meta.env.MAIN_VITE_GITHUB_USERNAME,
   repo: import.meta.env.MAIN_VITE_GITHUB_REPO,
-  releaseType: 'release',
-  token:import.meta.env.MAIN_VITE_GITHUB_TOKEN
+  releaseType: packageJson.preview ? 'prerelease' : 'release',
+  token: import.meta.env.MAIN_VITE_GITHUB_TOKEN
 });
 autoUpdater.forceDevUpdateConfig = true;
 autoUpdater.autoDownload = true;

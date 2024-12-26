@@ -22,3 +22,4 @@ nsis:
   artifactName: ${name}-${version}-setup.${ext}
   uninstallDisplayName: ${productName} Uninstaller
   createDesktopShortcut: always
+  oneClick: false
