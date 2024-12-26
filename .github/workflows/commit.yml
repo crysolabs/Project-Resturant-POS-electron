@@ -84,12 +84,12 @@ jobs:
       - id: get_version
         run: |
           version=$(node -p 'require("./package.json").version')
-          echo "tag=$version" >> $GITHUB_ENV
+          echo "::set-output name=tag::$version"
 
       - id: get_preview
         run: |
           preview=$(node -p 'require("./package.json").preview ? "true" : "false"')
-          echo "preview=$preview" >> $GITHUB_ENV
+          echo "::set-output name=preview::$preview"
 
   release:
     needs: build
