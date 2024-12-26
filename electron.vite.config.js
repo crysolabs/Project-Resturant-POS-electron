@@ -9,6 +9,9 @@ export default defineConfig({
       alias: {
         '@main': resolve('src/main')
       }
+    },
+    build: {
+      watch: {} // This enables main process reloading
     }
   },
   preload: {
@@ -17,6 +20,9 @@ export default defineConfig({
       alias: {
         '@preload': resolve('src/preload')
       }
+    },
+    build: {
+      watch: {} // This enables main process reloading
     }
   },
   renderer: {

@@ -134,7 +134,13 @@ const loaderWindow = class extends BrowserWindow {
   }
 
   async load() {
-    this.loadFile(join(__dirname, '../renderer/loader/index.html'));
+    if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
+
+      this.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/loader/index.html`);
+    } else {
+      this.loadFile(join(__dirname, '../renderer/loader/index.html'));
+    }
+
     await new Promise((resolve, reject) => {
       this.once('ready-to-show', () => {
         resolve();
