@@ -8,6 +8,7 @@ const loaderWindow = class extends BrowserWindow {
       resizable: false,
       autoHideMenuBar: true,
       show: false,
+      frame: false,
       titleBarStyle: 'hidden',
       focusable: true,
       icon: join(__dirname, '../../build/resources/icon.png'),

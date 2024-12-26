@@ -1,7 +1,5 @@
-# Define the 'productName' variable
 productName: Skill Swap
-# Rest of your configuration
-appId: com.electron.skill-swap
+appId: com.achiraGaming.skill-swap
 directories:
   buildResources: build
 files:
@@ -13,13 +11,14 @@ files:
 asarUnpack:
   - resources/**
 win:
-  icon: build/windows/icons/icon.ico # Specify the path to your Windows icon file (ICO format)
+  icon: build/windows/icons/icon.ico
   target: nsis
 nsis:
   installerIcon: build/windows/icons/icon.ico
   uninstallerIcon: build/windows/icons/icon.ico
   installerHeaderIcon: build/windows/icons/icon.ico
-  artifactName: ${name}-${version}-setup.${ext}
-  uninstallDisplayName: ${productName} Uninstaller
+  artifactName: "${name}-${version}-setup.${ext}"
+  uninstallDisplayName: '${productName} Uninstaller'
   createDesktopShortcut: always
   oneClick: false
+  allowToChangeInstallationDirectory: true
