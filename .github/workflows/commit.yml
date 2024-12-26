@@ -7,47 +7,55 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    
+
     strategy:
       matrix:
         os: [windows-latest]
         node-version: [18.x]
-    
+
     outputs:
       tag: ${{ steps.get_version.outputs.tag }}
       preview: ${{ steps.get_preview.outputs.preview }}
 
     steps:
       - uses: actions/checkout@v3
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          
+
       - name: Install dependencies
         run: npm install
-        
+
       - name: Build and package
         run: |
           npm run lint
           npm run format
           npm run build
-          
+
       - name: Build Windows
         if: matrix.os == 'windows-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build:win
-        
+
       - name: Build MacOS
         if: matrix.os == 'macos-latest'
         run: npm run build:mac
-        
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build Linux
         if: matrix.os == 'ubuntu-latest'
         run: npm run build:linux
-        
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           name: windows-artifacts
           path: dist/*.exe
@@ -55,6 +63,8 @@ jobs:
       - name: Upload MacOS artifacts
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           name: macos-artifacts
           path: dist/*.dmg
@@ -62,6 +72,8 @@ jobs:
       - name: Upload Linux artifacts
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           name: linux-artifacts
           path: |
@@ -82,15 +94,15 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-          
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
