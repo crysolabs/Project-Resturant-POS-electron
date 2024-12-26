@@ -22,4 +22,5 @@ nsis:
   createDesktopShortcut: always
   oneClick: false
   allowToChangeInstallationDirectory: true
+  differentialPackage: true
 publish: []

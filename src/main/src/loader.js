@@ -38,58 +38,76 @@ const loaderWindow = class extends BrowserWindow {
   }
   checkUpdates(resolve, reject) {
     this.send('loading-status', {
-      status: `Checking For Updates...`
+      status: 'Checking For Updates...',
+      type: 'check',
+      progress: 0
     });
+
     this.autoUpdater.checkForUpdates();
     this.autoUpdater.on('update-not-available', resolve);
-    this.autoUpdater.on('download-progress', (info) => {
-      const totalMb = info.total * 0.000001;
-      const message = `Downloading Updates ${((info.percent * totalMb) / 100).toFixed(
-        2
-      )}Mb of ${totalMb.toFixed(2)}Mb`;
 
-      this.send('loading-status', {
-        status: message
-      });
+    this.autoUpdater.on('download-progress', (info) => {
+      const message = {
+        status: 'Downloading Update...',
+        type: 'download',
+        progress: info.percent,
+        speed: info.bytesPerSecond,
+        transferred: info.transferred,
+        total: info.total
+      };
+      this.send('loading-status', message);
     });
+
     this.autoUpdater.on('update-downloaded', () => {
       this.installUpdates(resolve, reject);
     });
+
     this.autoUpdater.on('error', async () => {
       await this.retry(resolve, reject);
     });
   }
   async installUpdates(resolve, reject) {
     const installMessage = () => {
-      const message = `Installing Updates in ${this.retryTime / 1000 - time}`;
-      this.send('loading-status', {
-        status: message
-      });
+      const message = {
+        status: 'Installing Update...',
+        type: 'install',
+        progress: 100,
+        remainingTime: this.retryTime / 1000 - time,
+        total: this.retryTime / 1000
+      };
+      this.send('loading-status', message);
       time++;
     };
+
     let time = 0;
     installMessage();
     const timeInterval = setInterval(() => {
       installMessage();
     }, 1000);
+
     await new Promise((resolve) => {
       setTimeout(() => {
         resolve();
       }, this.retryTime);
     });
     clearInterval(timeInterval);
-    // Add these options for silent install
     this.autoUpdater.quitAndInstall(false, true);
   }
 
   async retry(resolve, reject) {
     const retryMessage = () => {
-      const message = `Retrying in ${(this.retryTime / 1000) * this.retryies - time}`;
-      this.send('loading-status', {
-        status: message
-      });
+      const message = {
+        status: 'Retrying connection...',
+        type: 'retry',
+        progress: 0,
+        remainingTime: (this.retryTime / 1000) * this.retryies - time,
+        attempt: this.retryies,
+        total: this.retryTime / 1000
+      };
+      this.send('loading-status', message);
       time++;
     };
+
     this.handleClearUpdates();
     this.retryTime / this.retryies !== 1000 && this.retryies++;
     let time = 0;
@@ -97,7 +115,8 @@ const loaderWindow = class extends BrowserWindow {
     const timeInterval = setInterval(() => {
       retryMessage();
     }, 1000);
-    await new Promise((resolve, reject) => {
+
+    await new Promise((resolve) => {
       setTimeout(() => {
         resolve();
       }, this.retryies * this.retryTime);
@@ -105,6 +124,7 @@ const loaderWindow = class extends BrowserWindow {
     clearInterval(timeInterval);
     this.checkUpdates(resolve, reject);
   }
+
   async loadWindow() {
     this.send('loading-status', {
       status: 'Starting...'
