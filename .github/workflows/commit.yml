@@ -80,15 +80,11 @@ jobs:
           cat package.json
 
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.get_version.outputs.tag }}
           name: Release v${{ steps.get_version.outputs.tag }}
-          body: |
-            Release v${{ steps.get_version.outputs.tag }}
           draft: false
           prerelease: ${{ steps.get_preview.outputs.preview == 'true' }}
-          artifacts: 'artifacts/**/*'
+          files: artifacts/**/*
+          token: ${{ secrets.GITHUB_TOKEN }}
