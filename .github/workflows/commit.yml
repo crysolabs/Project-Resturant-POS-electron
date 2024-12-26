@@ -84,7 +84,7 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v3
 
@@ -92,22 +92,32 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+
       - id: get_version
         run: |
           version=$(node -p 'require("./package.json").version')
-          echo "::set-output name=tag::$version"
+          echo "tag=$version" >> $GITHUB_OUTPUT
 
       - id: get_preview
         run: |
           preview=$(node -p 'require("./package.json").preview ? "true" : "false"')
-          echo "::set-output name=preview::$preview"
+          echo "preview=$preview" >> $GITHUB_OUTPUT
+
+      - name: Debug Version Variables
+        run: |
+          echo "Version Tag: ${{ steps.get_version.outputs.tag }}"
+          echo "Preview Status: ${{ steps.get_preview.outputs.preview }}"
+          echo "Raw package.json content:"
+          cat package.json
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ needs.build.outputs.tag }}
-          name: Release v${{ needs.build.outputs.tag }}
+          release_name: Release v${{ needs.build.outputs.tag }}
+          body: |
+            Release v${{ needs.build.outputs.tag }}
           draft: false
           prerelease: ${{ needs.build.outputs.preview == 'true' }}
-          files: artifacts/**/*
-          token: ${{ secrets.GITHUB_TOKEN }}
