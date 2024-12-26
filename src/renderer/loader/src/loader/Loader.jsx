@@ -17,14 +17,16 @@ const Loader = function ({ status, dispatch }) {
 
   const getStatusDisplay = () => {
     if (!status) return '';
-    
-    switch(status.type) {
+
+    switch (status.type) {
       case 'retry':
         return `Retrying in ${status.remainingTime}s (Attempt ${status.attempt})`;
       case 'install':
         return `Installing Update (${status.remainingTime}s remaining)`;
       case 'download':
-        return `Downloading Update ${((status.transferred * 0.000001)).toFixed(2)}MB of ${((status.total * 0.000001)).toFixed(2)}MB`;
+        return `Downloading Update ${(status.transferred * 0.000001).toFixed(2)}MB of ${(
+          status.total * 0.000001
+        ).toFixed(2)}MB`;
       case 'check':
         return 'Checking For Updates...';
       default:
@@ -79,13 +81,11 @@ const Loader = function ({ status, dispatch }) {
             </li>
           </ul>
         </div>
-        <div className="status-container">
-          <div className="progress-bar" style={{width: `${getProgressBar()}%`}}></div>
-          <span className="status-text">{getStatusDisplay()}</span>
-          {getSpeedDisplay() && (
-            <span className="speed-text">{getSpeedDisplay()}</span>
-          )}
-        </div>
+      </div>
+      <div className="status-container">
+        <div className="progress-bar" style={{width: `${getProgressBar()}%`}}></div>
+        <span className="status-text">{getStatusDisplay()}</span>
+        {getSpeedDisplay() && <span className="speed-text">{getSpeedDisplay()}</span>}
       </div>
     </div>
   );
