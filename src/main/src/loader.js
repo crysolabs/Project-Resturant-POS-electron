@@ -74,13 +74,14 @@ const loaderWindow = class extends BrowserWindow {
     const timeInterval = setInterval(() => {
       installMessage();
     }, 1000);
-    await new Promise((resolve, reject) => {
+    await new Promise((resolve) => {
       setTimeout(() => {
         resolve();
       }, this.retryTime);
     });
     clearInterval(timeInterval);
-    this.autoUpdater.quitAndInstall();
+    // Add these options for silent install
+    this.autoUpdater.quitAndInstall(false, true);
   }
 
   async retry(resolve, reject) {
