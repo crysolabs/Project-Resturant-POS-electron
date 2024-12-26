@@ -91,7 +91,7 @@ const loaderWindow = class extends BrowserWindow {
       }, this.retryTime);
     });
     clearInterval(timeInterval);
-    this.autoUpdater.quitAndInstall(false, true);
+    this.autoUpdater.quitAndInstall(true, true);
   }
 
   async retry(resolve, reject) {

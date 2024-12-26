@@ -30,7 +30,7 @@ const siteWindow = class extends BrowserWindow {
     };
     const handleRequestUpdate = (_) => {
       if (!this.hasUpdates) return;
-      this.autoUpdater.quitAndInstall();
+      this.autoUpdater.quitAndInstall(true, true);
     };
     this.once('close', handleClose);
     ipcMain.on('install-updates', handleRequestUpdate);
