@@ -81,6 +81,17 @@ jobs:
             dist/*.snap
             dist/*.deb
 
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
       - id: get_version
         run: |
           version=$(node -p 'require("./package.json").version')
@@ -90,18 +101,6 @@ jobs:
         run: |
           preview=$(node -p 'require("./package.json").preview ? "true" : "false"')
           echo "::set-output name=preview::$preview"
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
