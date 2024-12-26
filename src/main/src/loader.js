@@ -4,7 +4,7 @@ const loaderWindow = class extends BrowserWindow {
   constructor(siteWindow, autoUpdater) {
     super({
       height: 500,
-      width: 400,
+      width: 450,
       resizable: false,
       autoHideMenuBar: true,
       show: false,
