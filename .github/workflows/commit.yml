@@ -32,7 +32,7 @@ jobs:
       - name: Build Windows
         if: matrix.os == 'windows-latest'
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build:win
 
       - name: Upload Windows artifacts
@@ -77,11 +77,15 @@ jobs:
           cat package.json
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ steps.get_version.outputs.tag }}
           name: Release v${{ steps.get_version.outputs.tag }}
+          body: |
+            Release v${{ steps.get_version.outputs.tag }}
           draft: false
           prerelease: ${{ steps.get_preview.outputs.preview == 'true' }}
-          files: artifacts/**/*
-          token: ${{ secrets.GH_TOKEN }}
+          artifacts: "artifacts/**/*"
