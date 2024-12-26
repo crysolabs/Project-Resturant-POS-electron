@@ -13,10 +13,6 @@ jobs:
         os: [windows-latest]
         node-version: [18.x]
 
-    outputs:
-      tag: ${{ steps.get_version.outputs.tag }}
-      preview: ${{ steps.get_preview.outputs.preview }}
-
     steps:
       - uses: actions/checkout@v3
 
@@ -35,40 +31,15 @@ jobs:
 
       - name: Build Windows
         if: matrix.os == 'windows-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npm run build:win
 
-      - name: Build MacOS
-        if: matrix.os == 'macos-latest'
-        run: npm run build:mac
-
-      - name: Build Linux
-        if: matrix.os == 'ubuntu-latest'
-        run: npm run build:linux
-
-
       - name: Upload Windows artifacts
-        if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
           name: windows-artifacts
           path: dist/*.exe
-
-      - name: Upload MacOS artifacts
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-artifacts
-          path: dist/*.dmg
-
-      - name: Upload Linux artifacts
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-artifacts
-          path: |
-            dist/*.AppImage
-            dist/*.snap
-            dist/*.deb
 
   release:
     needs: build
@@ -102,7 +73,7 @@ jobs:
       - name: Create Release
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           tag_name: v${{ needs.build.outputs.tag }}
           release_name: Release v${{ needs.build.outputs.tag }}
