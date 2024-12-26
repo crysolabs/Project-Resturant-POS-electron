@@ -43,6 +43,8 @@ jobs:
             dist/*.exe
             dist/latest.yml
             dist/*.exe.blockmap
+            dist/builder-debug.yml
+            dist/builder-effective-config.yml
 
   release:
     needs: build
