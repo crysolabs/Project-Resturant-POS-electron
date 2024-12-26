@@ -1,6 +1,6 @@
 {
   "name": "skill-swap",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "preview": false,
   "description": "Skill Swap is a Application made with electron",
   "main": "./out/main/index.js",
