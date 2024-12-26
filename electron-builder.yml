@@ -22,4 +22,4 @@ nsis:
   createDesktopShortcut: always
   oneClick: false
   allowToChangeInstallationDirectory: true
-publish: never
+publish: []
