@@ -13,7 +13,6 @@ autoUpdater.setFeedURL({
   owner: import.meta.env.MAIN_VITE_GITHUB_USERNAME,
   repo: import.meta.env.MAIN_VITE_GITHUB_REPO,
   releaseType: packageJson.preview ? 'prerelease' : 'release',
-  token: import.meta.env.MAIN_VITE_GITHUB_TOKEN
 });
 autoUpdater.forceDevUpdateConfig = true;
 autoUpdater.autoDownload = true;
