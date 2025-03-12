@@ -8,7 +8,7 @@ const electronEvents = class {
       removehandleLoading: (callback) => ipcRenderer.removeListener('loading-status', callback),
       handleUpdates: (callback) => ipcRenderer.on('update-info', callback),
       removehandleUpdates: (callback) => ipcRenderer.removeListener('update-info', callback),
-      printNote: (data) => ipcRenderer.invoke('print-note', data)
+      printOrderRecepit: (data) => ipcRenderer.invoke('print-order-receipt', data)
     };
   }
 

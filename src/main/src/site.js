@@ -34,7 +34,7 @@ const siteWindow = class extends BrowserWindow {
       if (!this.hasUpdates) return;
       this.autoUpdater.quitAndInstall(true, true);
     };
-    const handlePrintNote = async (data) => {
+    const handlePrintOrderReceipt = async (data) => {
       const printer = new ThermalPrinter.printer({
         type: ThermalPrinter.types.EPSON,
         interface: 'printer:POS-58',
@@ -69,7 +69,7 @@ const siteWindow = class extends BrowserWindow {
     };
     this.once('close', handleClose);
     ipcMain.on('install-updates', handleRequestUpdate);
-    ipcMain.handle('print-note', handlePrintNote);
+    ipcMain.handle('print-order-receipt', handlePrintOrderReceipt);
   }
   checkUpdates() {
     this.autoUpdater.checkForUpdates();
