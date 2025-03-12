@@ -11,6 +11,9 @@ export default defineConfig({
       }
     },
     build: {
+      rollupOptions: {
+        external: [ 'node-thermal-printer']
+      },
       watch: {} // This enables main process reloading
     }
   },
