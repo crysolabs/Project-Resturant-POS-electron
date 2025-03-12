@@ -1,8 +1,8 @@
 {
-  "name": "skill-swap",
-  "version": "1.2.4",
+  "name": "resuturant-pos-system",
+  "version": "1.2.5",
   "preview": false,
-  "description": "Skill Swap is a Application made with electron",
+  "description": "Restuurant Pos System is a Application made with electron",
   "main": "./out/main/index.js",
   "author": "achiraGaming",
   "homepage": "https://www.electronjs.org",

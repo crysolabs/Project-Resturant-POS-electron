@@ -1,5 +1,5 @@
-productName: Skill Swap
-appId: com.achiraGaming.skill-swap
+productName: Resturant POS System
+appId: com.achiraGaming.resturant-pos-system
 directories:
   buildResources: build
 files:
