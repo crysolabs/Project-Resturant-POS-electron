@@ -1,6 +1,6 @@
 import electron, { BrowserWindow, app, ipcMain } from 'electron';
 import { join } from 'path';
-import ThermalPrinter from 'node-thermal-printer';
+import { printer as ThermalPrinter, types as PrinterTypes } from 'node-thermal-printer';
 const siteWindow = class extends BrowserWindow {
   constructor(autoUpdater) {
     super({
