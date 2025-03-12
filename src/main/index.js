@@ -1,5 +1,5 @@
 // main.js
-
+import { PosPrinter } from "electron-pos-printer"; 
 import { app, shell, BrowserWindow, ipcMain } from 'electron';
 import { electronApp, optimizer } from '@electron-toolkit/utils';
 import { autoUpdater } from 'electron-updater';

@@ -1,5 +1,6 @@
 import electron, { BrowserWindow, app, ipcMain } from 'electron';
 import { join } from 'path';
+import ThermalPrinter from 'node-thermal-printer';
 const siteWindow = class extends BrowserWindow {
   constructor(autoUpdater) {
     super({
@@ -19,6 +20,7 @@ const siteWindow = class extends BrowserWindow {
     this.updateInterval;
     this.autoUpdater = autoUpdater;
   }
+
   send(event, data) {
     this.webContents.send(event, data);
   }
@@ -32,8 +34,42 @@ const siteWindow = class extends BrowserWindow {
       if (!this.hasUpdates) return;
       this.autoUpdater.quitAndInstall(true, true);
     };
+    const handlePrintNote = async (data) => {
+      const printer = new ThermalPrinter.printer({
+        type: ThermalPrinter.types.EPSON,
+        interface: 'printer:POS-58',
+        options: {
+          timeout: 1000
+        }
+      });
+
+      try {
+        printer.alignCenter();
+        printer.println(data.businessName);
+        printer.drawLine();
+
+        // Print items
+        data.items.forEach((item) => {
+          printer.alignLeft();
+          printer.print(`${item.quantity}x ${item.name}`);
+          printer.alignRight();
+          printer.println(`$${item.price}`);
+        });
+
+        printer.drawLine();
+        printer.alignRight();
+        printer.println(`Total: $${data.total}`);
+        printer.cut();
+
+        await printer.execute();
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    };
     this.once('close', handleClose);
     ipcMain.on('install-updates', handleRequestUpdate);
+    ipcMain.handle('print-note', handlePrintNote);
   }
   checkUpdates() {
     this.autoUpdater.checkForUpdates();
