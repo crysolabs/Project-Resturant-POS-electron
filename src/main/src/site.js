@@ -76,6 +76,12 @@ const siteWindow = class extends BrowserWindow {
     const handleOpenWindow = async (_, options) => {
       try {
         const displayManager = new DisplayManager(options);
+
+        // Add closed event listener to clean up activeWindows
+        displayManager.on('closed', () => {
+          this.activeWindows.delete(displayManager.windowId);
+        });
+
         const windowId = await displayManager.load(options.url);
         this.activeWindows.set(windowId, displayManager);
         return { success: true, windowId, display: displayManager };
@@ -87,9 +93,10 @@ const siteWindow = class extends BrowserWindow {
     const handleCloseWindow = (_, windowId) => {
       const window = this.activeWindows.get(windowId);
       if (!window) return { success: false, error: 'Window not found' };
-      const result = window.end();
 
-      return { success: result };
+      window.close();
+      this.activeWindows.delete(windowId);
+      return { success: true };
     };
 
     ipcMain.handle('open-window', handleOpenWindow);
