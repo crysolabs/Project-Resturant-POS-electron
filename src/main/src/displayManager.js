@@ -21,8 +21,8 @@ class DisplayManager extends BrowserWindow {
       },
       ...options.windowOptions
     });
+    this.displayId = targetDisplay.id;
     this.options = options;
-    this.activeWindows = new Map();
     this.windowId = options?.windowId || Date.now().toString() + randomUUID();
   }
 

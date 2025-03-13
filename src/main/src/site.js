@@ -75,26 +75,29 @@ const siteWindow = class extends BrowserWindow {
     };
     const handleOpenWindow = async (_, options) => {
       try {
+        // Check for existing window with same ID
+        if (options.windowId && this.activeWindows.has(options.windowId)) {
+          const existingWindow = this.activeWindows.get(options.windowId);
+          existingWindow.focus();
+          return { success: true, windowId: options.windowId, status: 'focused' };
+        }
+
         const displayManager = new DisplayManager(options);
         const windowId = await displayManager.load(options.url);
-
-        // Add closed event listener to clean up activeWindows
         displayManager.webContents.on('did-finish-load', () => {
           this.send('display-loaded', { windowId });
         });
-
         displayManager.on('closed', () => {
           this.activeWindows.delete(windowId);
           this.send('display-closed', { windowId });
         });
 
         this.activeWindows.set(windowId, displayManager);
-        return { success: true, windowId };
+        return { success: true, windowId, status: 'created' };
       } catch (error) {
         return { success: false, error: error.message };
       }
     };
-
     const handleCloseWindow = async (_, windowId) => {
       try {
         const window = this.activeWindows.get(windowId);
@@ -108,6 +111,26 @@ const siteWindow = class extends BrowserWindow {
       }
     };
 
+    const handleGetDisplayInfo = () => {
+      const displays = electron.screen.getAllDisplays();
+      const activeDisplays = Array.from(this.activeWindows.entries()).map(([id, window]) => ({
+        id,
+        bounds: window.getBounds(),
+        displayId: window.displayId
+      }));
+
+      return {
+        success: true,
+        displays: displays.map((display) => ({
+          id: display.id,
+          bounds: display.bounds,
+          isInternal: display.internal,
+          isActive: activeDisplays.some((activeDisplay) => activeDisplay.displayId === display.id)
+        })),
+        activeWindows: activeDisplays
+      };
+    };
+    ipcMain.handle('get-display-info', handleGetDisplayInfo);
     ipcMain.handle('open-window', handleOpenWindow);
     ipcMain.handle('close-window', handleCloseWindow);
     this.once('close', handleClose);

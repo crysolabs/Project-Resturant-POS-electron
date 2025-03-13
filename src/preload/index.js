@@ -11,6 +11,7 @@ const electronEvents = class {
       printOrderRecepit: (data) => ipcRenderer.invoke('print-order-receipt', data),
       // seperate display manager
       openWindow: (options) => ipcRenderer.invoke('open-window', options),
+      getDisplayInfo: () => ipcRenderer.invoke('get-display-info'),
       closeWindow: (windowId) => ipcRenderer.invoke('close-window', windowId),
       onDisplayLoaded: (callback) => ipcRenderer.on('display-loaded', callback),
       onDisplayClosed: (callback) => ipcRenderer.on('display-closed', callback),
