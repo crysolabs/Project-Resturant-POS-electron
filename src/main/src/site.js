@@ -34,6 +34,9 @@ const siteWindow = class extends BrowserWindow {
     const handleClose = () => {
       this.updateInterval && clearInterval(this.updateInterval);
       this.autoUpdater.removeAllListeners();
+      this.activeWindows.forEach((window) => {
+        window.end();
+      });
       this.destroy();
     };
     const handleRequestUpdate = (_) => {
