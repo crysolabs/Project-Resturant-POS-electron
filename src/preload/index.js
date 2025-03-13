@@ -8,7 +8,9 @@ const electronEvents = class {
       removehandleLoading: (callback) => ipcRenderer.removeListener('loading-status', callback),
       handleUpdates: (callback) => ipcRenderer.on('update-info', callback),
       removehandleUpdates: (callback) => ipcRenderer.removeListener('update-info', callback),
-      printOrderRecepit: (data) => ipcRenderer.invoke('print-order-receipt', data)
+      printOrderRecepit: (data) => ipcRenderer.invoke('print-order-receipt', data),
+      openWindow: (options) => ipcRenderer.invoke('open-window', options),
+      closeWindow: (windowId) => ipcRenderer.invoke('close-window', windowId)
     };
   }
 

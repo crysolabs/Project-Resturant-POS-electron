@@ -1,15 +1,20 @@
 import electron, { BrowserWindow, app, ipcMain } from 'electron';
 import { join } from 'path';
 import { printer as ThermalPrinter, types as PrinterTypes } from 'node-thermal-printer';
+import DisplayManager from './displayManager';
+
 const siteWindow = class extends BrowserWindow {
   constructor(autoUpdater) {
     super({
-      width: electron.screen.getPrimaryDisplay().workAreaSize.width,
-      height: electron.screen.getPrimaryDisplay().workAreaSize.height,
+      width: electron.screen.getPrimaryDisplay().bounds.width,
+      height: electron.screen.getPrimaryDisplay().bounds.height,
+      x: electron.screen.getPrimaryDisplay().bounds.x,
+      y: electron.screen.getPrimaryDisplay().bounds.y,
       autoHideMenuBar: true,
       icon: join(__dirname, '../../build/resources/icon.png'),
       title: '',
       show: false,
+      maximizable: true,
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         nodeIntegration: true,
@@ -67,6 +72,23 @@ const siteWindow = class extends BrowserWindow {
         return { success: false, error: error.message };
       }
     };
+    const handleOpenWindow = async (_, options) => {
+      try {
+        const displayManager = new DisplayManager(options);
+        const windowId = await displayManager.load(options.url);
+        return { success: true, windowId };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    };
+
+    const handleCloseWindow = (_, windowId) => {
+      const closed = DisplayManager.closeWindow(windowId);
+      return { success: closed };
+    };
+
+    ipcMain.handle('open-window', handleOpenWindow);
+    ipcMain.handle('close-window', handleCloseWindow);
     this.once('close', handleClose);
     ipcMain.on('install-updates', handleRequestUpdate);
     ipcMain.handle('print-order-receipt', handlePrintOrderReceipt);
@@ -85,6 +107,7 @@ const siteWindow = class extends BrowserWindow {
     this.autoUpdater.on('update-downloaded', handleUpdateDownload);
   }
   async load() {
+    this.maximize()
     this.loadURL(import.meta.env.MAIN_VITE_APPURI);
     await new Promise((resolve, reject) => {
       this.once('ready-to-show', () => {

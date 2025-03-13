@@ -1,6 +1,6 @@
 import { BrowserWindow, screen } from 'electron';
 import { join } from 'path';
-
+import { randomUUID } from 'crypto';
 class DisplayManager extends BrowserWindow {
   constructor(options = {}) {
     const displays = screen.getAllDisplays();
@@ -21,28 +21,43 @@ class DisplayManager extends BrowserWindow {
       },
       ...options.windowOptions
     });
-
-    this.displayIndex = options.displayIndex;
+    this.activeWindows = new Map();
+    this.windowId = options.windowId || Date.now().toString() + randomUUID();
+    this.activeWindows.set(this.windowId, this);
   }
 
   handleEvents() {
     const handleClose = () => {
+      DisplayManager.activeWindows.delete(this.windowId);
       this.destroy();
     };
     this.once('close', handleClose);
   }
 
   async load(url) {
+    if (this.options.maximize) {
+      this.maximize();
+    }
     this.loadURL(url);
-    
+
     await new Promise((resolve) => {
       this.once('ready-to-show', () => {
         resolve();
       });
     });
-    
+
     this.show();
     this.handleEvents();
+    return this.windowId;
+  }
+
+  static closeWindow(windowId) {
+    const window = DisplayManager.activeWindows.get(windowId);
+    if (window) {
+      window.close();
+      return true;
+    }
+    return false;
   }
 }
 
