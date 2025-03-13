@@ -98,16 +98,15 @@ const siteWindow = class extends BrowserWindow {
         }
 
         const displayManager = new DisplayManager(options);
-        const windowId = await displayManager.load(options.url);
-        displayManager.webContents.on('did-finish-load', () => {
-          this.send('display-loaded', { windowId });
-        });
+        const windowId = displayManager.windowId;
+        this.activeWindows.set(windowId, displayManager);
+        this.send('display-loaded', { windowId });
         displayManager.on('closed', () => {
           this.activeWindows.delete(windowId);
           this.send('display-closed', { windowId });
         });
+        await displayManager.load(options.url);
 
-        this.activeWindows.set(windowId, displayManager);
         return { success: true, windowId, status: 'created' };
       } catch (error) {
         return { success: false, error: error.message };
