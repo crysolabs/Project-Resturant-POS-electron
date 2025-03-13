@@ -78,7 +78,7 @@ const siteWindow = class extends BrowserWindow {
         const displayManager = new DisplayManager(options);
         const windowId = await displayManager.load(options.url);
         this.activeWindows.set(windowId, displayManager);
-        return { success: true, windowId };
+        return { success: true, windowId, display: displayManager };
       } catch (error) {
         return { success: false, error: error.message };
       }

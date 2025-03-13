@@ -7,8 +7,8 @@ class DisplayManager extends BrowserWindow {
     const targetDisplay = displays[options.displayIndex || 0];
 
     super({
-      width: options.width || targetDisplay.bounds.width,
-      height: options.height || targetDisplay.bounds.height,
+      width: options?.width || targetDisplay.bounds.width,
+      height: options?.height || targetDisplay.bounds.height,
       x: targetDisplay.bounds.x,
       y: targetDisplay.bounds.y,
       autoHideMenuBar: true,
@@ -21,8 +21,9 @@ class DisplayManager extends BrowserWindow {
       },
       ...options.windowOptions
     });
+    this.options = options;
     this.activeWindows = new Map();
-    this.id = Date.now().toString() + randomUUID();
+    this.windowId = Date.now().toString() + randomUUID();
   }
 
   handleEvents() {
@@ -33,7 +34,8 @@ class DisplayManager extends BrowserWindow {
   }
 
   async load(url) {
-    if (this.options.maximize) {
+    if (this.options?.maximize) {
+      console.log('maximizing');
       this.maximize();
     }
     this.loadURL(url);
@@ -46,9 +48,10 @@ class DisplayManager extends BrowserWindow {
 
     this.show();
     this.handleEvents();
-    return this.id;
+    return this.windowId;
   }
   end() {
+    
     this.close();
     this.destroy();
     return true;
