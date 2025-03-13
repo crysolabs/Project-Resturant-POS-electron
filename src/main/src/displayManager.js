@@ -23,7 +23,7 @@ class DisplayManager extends BrowserWindow {
     });
     this.options = options;
     this.activeWindows = new Map();
-    this.windowId = Date.now().toString() + randomUUID();
+    this.windowId = options?.windowId || Date.now().toString() + randomUUID();
   }
 
   handleEvents() {
@@ -35,7 +35,6 @@ class DisplayManager extends BrowserWindow {
 
   async load(url) {
     if (this.options?.maximize) {
-      console.log('maximizing');
       this.maximize();
     }
     this.loadURL(url);
@@ -51,7 +50,6 @@ class DisplayManager extends BrowserWindow {
     return this.windowId;
   }
   end() {
-    
     this.close();
     this.destroy();
     return true;

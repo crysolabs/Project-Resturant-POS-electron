@@ -76,27 +76,36 @@ const siteWindow = class extends BrowserWindow {
     const handleOpenWindow = async (_, options) => {
       try {
         const displayManager = new DisplayManager(options);
+        const windowId = await displayManager.load(options.url);
 
         // Add closed event listener to clean up activeWindows
-        displayManager.on('closed', () => {
-          this.activeWindows.delete(displayManager.windowId);
+        displayManager.webContents.on('did-finish-load', () => {
+          this.send('display-loaded', { windowId });
         });
 
-        const windowId = await displayManager.load(options.url);
+        displayManager.on('closed', () => {
+          this.activeWindows.delete(windowId);
+          this.send('display-closed', { windowId });
+        });
+
         this.activeWindows.set(windowId, displayManager);
-        return { success: true, windowId, display: displayManager };
+        return { success: true, windowId };
       } catch (error) {
         return { success: false, error: error.message };
       }
     };
 
-    const handleCloseWindow = (_, windowId) => {
-      const window = this.activeWindows.get(windowId);
-      if (!window) return { success: false, error: 'Window not found' };
+    const handleCloseWindow = async (_, windowId) => {
+      try {
+        const window = this.activeWindows.get(windowId);
+        if (!window) throw new Error('Window not found');
 
-      window.close();
-      this.activeWindows.delete(windowId);
-      return { success: true };
+        window.close();
+        this.activeWindows.delete(windowId);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
     };
 
     ipcMain.handle('open-window', handleOpenWindow);
