@@ -73,6 +73,18 @@ const siteWindow = class extends BrowserWindow {
         return { success: false, error: error.message };
       }
     };
+    const handleFocusWindow = (_, options) => {
+      try {
+        // Check for existing window with same ID
+        if (options.windowId && this.activeWindows.has(options.windowId)) {
+          const existingWindow = this.activeWindows.get(options.windowId);
+          existingWindow.focus();
+          return { success: true, windowId: options.windowId, status: 'focused' };
+        }
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    };
     const handleOpenWindow = async (_, options) => {
       try {
         // Check for existing window with same ID
@@ -130,6 +142,7 @@ const siteWindow = class extends BrowserWindow {
         activeWindows: activeDisplays
       };
     };
+    ipcMain.handle('focus-window', handleFocusWindow);
     ipcMain.handle('get-display-info', handleGetDisplayInfo);
     ipcMain.handle('open-window', handleOpenWindow);
     ipcMain.handle('close-window', handleCloseWindow);

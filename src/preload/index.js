@@ -10,6 +10,7 @@ const electronEvents = class {
       removehandleUpdates: (callback) => ipcRenderer.removeListener('update-info', callback),
       printOrderRecepit: (data) => ipcRenderer.invoke('print-order-receipt', data),
       // seperate display manager
+      focusWindow: (windowId) => ipcRenderer.invoke('focus-window', windowId),
       openWindow: (options) => ipcRenderer.invoke('open-window', options),
       getDisplayInfo: () => ipcRenderer.invoke('get-display-info'),
       closeWindow: (windowId) => ipcRenderer.invoke('close-window', windowId),
