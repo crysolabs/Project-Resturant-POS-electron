@@ -7,8 +7,8 @@ class DisplayManager extends BrowserWindow {
     const targetDisplay = displays[options.displayIndex || 0];
 
     super({
-      width: options.width || 1024,
-      height: options.height || 768,
+      width: options.width || targetDisplay.bounds.width,
+      height: options.height || targetDisplay.bounds.height,
       x: targetDisplay.bounds.x,
       y: targetDisplay.bounds.y,
       autoHideMenuBar: true,
@@ -22,14 +22,12 @@ class DisplayManager extends BrowserWindow {
       ...options.windowOptions
     });
     this.activeWindows = new Map();
-    this.windowId = options.windowId || Date.now().toString() + randomUUID();
-    this.activeWindows.set(this.windowId, this);
+    this.id = Date.now().toString() + randomUUID();
   }
 
   handleEvents() {
     const handleClose = () => {
-      DisplayManager.activeWindows.delete(this.windowId);
-      this.destroy();
+      this.end();
     };
     this.once('close', handleClose);
   }
@@ -48,16 +46,12 @@ class DisplayManager extends BrowserWindow {
 
     this.show();
     this.handleEvents();
-    return this.windowId;
+    return this.id;
   }
-
-  static closeWindow(windowId) {
-    const window = DisplayManager.activeWindows.get(windowId);
-    if (window) {
-      window.close();
-      return true;
-    }
-    return false;
+  end() {
+    this.close();
+    this.destroy();
+    return true;
   }
 }
 

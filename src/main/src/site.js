@@ -24,6 +24,7 @@ const siteWindow = class extends BrowserWindow {
     this.hasUpdates = false;
     this.updateInterval;
     this.autoUpdater = autoUpdater;
+    this.activeWindows = new Map();
   }
 
   send(event, data) {
@@ -76,6 +77,7 @@ const siteWindow = class extends BrowserWindow {
       try {
         const displayManager = new DisplayManager(options);
         const windowId = await displayManager.load(options.url);
+        this.activeWindows.set(windowId, displayManager);
         return { success: true, windowId };
       } catch (error) {
         return { success: false, error: error.message };
@@ -83,8 +85,11 @@ const siteWindow = class extends BrowserWindow {
     };
 
     const handleCloseWindow = (_, windowId) => {
-      const closed = DisplayManager.closeWindow(windowId);
-      return { success: closed };
+      const window = this.activeWindows.get(windowId);
+      if (!window) return { success: false, error: 'Window not found' };
+      const result = window.end();
+
+      return { success: result };
     };
 
     ipcMain.handle('open-window', handleOpenWindow);
@@ -107,7 +112,7 @@ const siteWindow = class extends BrowserWindow {
     this.autoUpdater.on('update-downloaded', handleUpdateDownload);
   }
   async load() {
-    this.maximize()
+    this.maximize();
     this.loadURL(import.meta.env.MAIN_VITE_APPURI);
     await new Promise((resolve, reject) => {
       this.once('ready-to-show', () => {
