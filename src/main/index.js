@@ -92,7 +92,11 @@ class ElectronApp {
       app.setAppUserModelId(this.appId);
       app.setLoginItemSettings({
         openAtLogin: true,
-        openAsHidden: true,
+        openAsHidden: false,
+        enabled:true,
+        name: this.appName,
+        serviceName: this.appName,
+        type: 'app',
         path: app.getPath('exe')
       });
     }
