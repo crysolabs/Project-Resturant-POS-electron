@@ -15,9 +15,8 @@ class AppTray {
 
   create() {
     // Create tray icon
-    
 
-    const trayIcon = nativeImage.createFromPath(appIconPath).resize({ width: 16, height: 16 });
+    const trayIcon = appIconPath;
 
     this.tray = new Tray(trayIcon);
     this.tray.setToolTip(this.appName);
@@ -52,7 +51,10 @@ class AppTray {
 
           // Optional: Show notification that app is still running in tray
           if (process.platform === 'win32') {
+            const trayIcon = appIconPath;
+
             this.tray.displayBalloon({
+              icon: trayIcon,
               title: this.appName,
               content: this.appDescription
             });

@@ -10,6 +10,7 @@ import packageJson from '../../package.json';
 
 // main exports
 export const appName = packageJson.productName || 'Electron App';
+export const appid = `com.${packageJson.name}.app` || 'com.electron.app';
 export const appDescription = packageJson.description || 'Electron application';
 export const appIconPath = app.isPackaged
   ? join(process.resourcesPath, 'resources/icon.png')
@@ -80,8 +81,8 @@ async function createMainWindow() {
 async function initApp() {
   try {
     // Set app user model id for windows
-    electronApp.setAppUserModelId('com.electron');
-    app.name = appName;
+    app.setName(appName);
+    app.setAppUserModelId(appid);
     app.setLoginItemSettings({
       openAtLogin: true, // Start on boot
       openAsHidden: true, // Start minimized

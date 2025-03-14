@@ -1,8 +1,9 @@
 productName: Resturant POS System
-appId: com.achiraGaming.resturant-pos-system
+appId: com.resuturant-pos-system.app
 directories:
   buildResources: build
 files:
+
   - '!**/.vscode/*'
   - '!src/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
