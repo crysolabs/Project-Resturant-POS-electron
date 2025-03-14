@@ -2,6 +2,7 @@ import electron, { BrowserWindow, app, ipcMain } from 'electron';
 import { join } from 'path';
 import { printer as ThermalPrinter, types as PrinterTypes } from 'node-thermal-printer';
 import DisplayManager from './displayManager';
+import { appIconPath, appName } from '..';
 
 const siteWindow = class extends BrowserWindow {
   constructor(autoUpdater) {
@@ -11,8 +12,8 @@ const siteWindow = class extends BrowserWindow {
       x: electron.screen.getPrimaryDisplay().bounds.x,
       y: electron.screen.getPrimaryDisplay().bounds.y,
       autoHideMenuBar: true,
-      icon: join(__dirname, '../../build/resources/icon.png'),
-      title: '',
+      icon: appIconPath,
+      title: appName,
       show: false,
       maximizable: true,
       webPreferences: {

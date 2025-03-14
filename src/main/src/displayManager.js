@@ -1,6 +1,7 @@
 import { BrowserWindow, screen } from 'electron';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
+import { appIconPath, appName } from '..';
 class DisplayManager extends BrowserWindow {
   constructor(options = {}) {
     const displays = screen.getAllDisplays();
@@ -11,9 +12,9 @@ class DisplayManager extends BrowserWindow {
       height: options?.height || targetDisplay.bounds.height,
       x: targetDisplay.bounds.x,
       y: targetDisplay.bounds.y,
-
+      title: appName,
       autoHideMenuBar: true,
-      icon: join(__dirname, '../../build/resources/icon.png'),
+      icon: appIconPath,
       show: false,
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
@@ -21,7 +22,7 @@ class DisplayManager extends BrowserWindow {
         contextIsolation: true
       },
       ...options.windowOptions
-    });    
+    });
     this.displayId = targetDisplay.id;
     this.options = options;
     this.windowId = options?.windowId || Date.now().toString() + randomUUID();

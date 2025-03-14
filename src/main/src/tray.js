@@ -1,7 +1,7 @@
 import { Tray, Menu, app, nativeImage, BrowserWindow } from 'electron';
 import { join } from 'path';
-import packageJson from '../../../package.json';
 import siteWindow from './site';
+import { appName, appDescription, appIconPath } from '..';
 
 class AppTray {
   constructor(mainWindow) {
@@ -9,15 +9,15 @@ class AppTray {
     this.tray = null;
     this.contextMenu = null;
     this.isQuitting = false;
-    this.appName = packageJson.name || 'Restaurant POS';
-    this.appDescription =
-      packageJson.description || 'Application is still running in the system tray';
+    this.appName = appName;
+    this.appDescription = appDescription;
   }
 
   create() {
     // Create tray icon
-    const iconPath = join(__dirname, '../../build/resources/icon.png');
-    const trayIcon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
+    
+
+    const trayIcon = nativeImage.createFromPath(appIconPath).resize({ width: 16, height: 16 });
 
     this.tray = new Tray(trayIcon);
     this.tray.setToolTip(this.appName);
@@ -80,32 +80,40 @@ class AppTray {
   }
 
   toggleMainWindow() {
-    if (!this.mainWindow) return;
+    if (!this.mainWindow || this.mainWindow.isDestroyed()) {
+      console.log('Window reference is invalid or destroyed');
+      return;
+    }
 
-    // Check if isVisible is a function before calling it
-    if (this.mainWindow instanceof siteWindow) {
-      if (this.mainWindow.isVisible()) {
-        this.mainWindow.hide();
+    try {
+      if (this.mainWindow instanceof siteWindow) {
+        if (this.mainWindow.isVisible()) {
+          this.mainWindow.hide();
+        } else {
+          this.mainWindow.show();
+          this.mainWindow.focus();
+        }
       } else {
         this.mainWindow.show();
         this.mainWindow.focus();
       }
-    } else {
-      // Fallback if isVisible is not available
-      try {
-        this.mainWindow.show();
-        this.mainWindow.focus();
-      } catch (error) {
-        console.error('Error toggling window visibility:', error);
-      }
+    } catch (error) {
+      console.error('Error handling window visibility:', error);
     }
   }
 
   updateContextMenu() {
+    if (!this.tray || this.tray.isDestroyed()) {
+      return;
+    }
     let isWindowVisible = false;
 
     // Safely check if the window is visible
-    if (this.mainWindow && this.mainWindow instanceof siteWindow) {
+    if (
+      this.mainWindow &&
+      !this.mainWindow.isDestroyed() &&
+      this.mainWindow instanceof siteWindow
+    ) {
       isWindowVisible = this.mainWindow.isVisible();
     }
 
@@ -153,12 +161,20 @@ class AppTray {
   }
 
   destroy() {
-    if (this.mainWindow && this.mainWindow instanceof siteWindow) {
-      this.mainWindow.cleanup();
-    }
-    if (this.tray) {
-      this.tray.destroy();
-      this.tray = null;
+    try {
+      if (
+        this.mainWindow &&
+        !this.mainWindow.isDestroyed() &&
+        this.mainWindow instanceof siteWindow
+      ) {
+        this.mainWindow.cleanup();
+      }
+      if (this.tray && !this.tray.isDestroyed()) {
+        this.tray.destroy();
+        this.tray = null;
+      }
+    } catch (error) {
+      console.error('Error during tray cleanup:', error);
     }
   }
 }

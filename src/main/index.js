@@ -8,6 +8,13 @@ import loaderWindow from './src/loader';
 import AppTray from './src/tray';
 import packageJson from '../../package.json';
 
+// main exports
+export const appName = packageJson.productName || 'Electron App';
+export const appDescription = packageJson.description || 'Electron application';
+export const appIconPath = app.isPackaged
+  ? join(process.resourcesPath, 'resources/icon.png')
+  : join(__dirname, '../../build/resources/icon.png');
+
 // Global references to prevent garbage collection
 let loaderWindowInstance = null;
 let siteWindowInstance = null;
@@ -74,6 +81,7 @@ async function initApp() {
   try {
     // Set app user model id for windows
     electronApp.setAppUserModelId('com.electron');
+    app.name = appName;
     app.setLoginItemSettings({
       openAtLogin: true, // Start on boot
       openAsHidden: true, // Start minimized

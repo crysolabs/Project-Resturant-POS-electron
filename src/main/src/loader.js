@@ -1,5 +1,6 @@
 import electron, { BrowserWindow, app, ipcMain } from 'electron';
 import { join } from 'path';
+import { appIconPath } from '..';
 const loaderWindow = class extends BrowserWindow {
   constructor(siteWindow, autoUpdater) {
     super({
@@ -9,7 +10,7 @@ const loaderWindow = class extends BrowserWindow {
       autoHideMenuBar: true,
       show: false,
       titleBarStyle: 'hidden',
-      icon: join(__dirname, '../../build/resources/icon.png'),
+      icon: appIconPath,
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         nodeIntegration: true,
