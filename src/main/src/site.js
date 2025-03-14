@@ -49,7 +49,6 @@ const siteWindow = class extends BrowserWindow {
   handleMainWindowShow() {
     // Show all secondary windows that were visible before
     this.activeWindows.forEach((window) => {
-      console.log(window.wasVisible);
       if (!window.isVisible()) {
         window.show();
       }
