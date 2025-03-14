@@ -1,18 +1,18 @@
 import { Tray, Menu, app, nativeImage, BrowserWindow } from 'electron';
 import { join } from 'path';
 import siteWindow from './site';
-import { appName, appDescription, appIconPath } from '..';
 
 class AppTray {
-  constructor(mainWindow) {
-    this.mainWindow = mainWindow;
+  constructor(main) {
+    this.main = main;
     this.tray = null;
     this.contextMenu = null;
+    this.mainWindow = null;
     this.isQuitting = false;
-    this.appName = appName;
-    this.appDescription = appDescription;
+    this.appName = main.appName;
+    this.appDescription = main.appDescription;
     this.trayIcon = nativeImage
-      .createFromPath(appIconPath)
+      .createFromPath(main.appIconPath)
       .resize({ width: 16, height: 16, quality: 'best' });
   }
 

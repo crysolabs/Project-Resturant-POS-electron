@@ -1,12 +1,15 @@
 {
   "name": "resuturant-pos-system",
-  "productName": "Resuturant Pos System",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "preview": false,
   "description": "Resturant Pos System is a Application made with electron",
   "main": "./out/main/index.js",
   "author": "achiraGaming",
   "homepage": "https://www.electronjs.org",
+  "build":{
+    "appId": "com.achiraGaming.resuturant-pos-system",
+    "productName": "Resuturant Pos System"
+  },
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",

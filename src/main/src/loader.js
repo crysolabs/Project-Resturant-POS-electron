@@ -1,8 +1,8 @@
 import electron, { BrowserWindow, app, ipcMain } from 'electron';
 import { join } from 'path';
-import { appIconPath } from '..';
+
 const loaderWindow = class extends BrowserWindow {
-  constructor(siteWindow, autoUpdater) {
+  constructor(main, autoUpdater) {
     super({
       height: 500,
       width: 400,
@@ -10,16 +10,15 @@ const loaderWindow = class extends BrowserWindow {
       autoHideMenuBar: true,
       show: false,
       titleBarStyle: 'hidden',
-      icon: appIconPath,
+      icon: main.appIconPath,
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         nodeIntegration: true,
         contextIsolation: true
       }
     });
+    this.main = main;
     this.autoUpdater = autoUpdater;
-    this.siteWindow = siteWindow;
-    this.siteWindowInstance = null;
     this.retryies = 0;
     this.retryTime = Number(import.meta.env.MAIN_VITE_RETRYTIME);
   }
@@ -131,9 +130,6 @@ const loaderWindow = class extends BrowserWindow {
     this.send('loading-status', {
       status: 'Starting...'
     });
-    this.siteWindowInstance = await new this.siteWindow(this.autoUpdater);
-    await this.siteWindowInstance.load();
-    this.close();
   }
 
   async load() {
@@ -155,7 +151,7 @@ const loaderWindow = class extends BrowserWindow {
     });
     this.reset();
     this.handleClearUpdates();
-    await this.loadWindow();
+    this.loadWindow();
   }
 };
 export default loaderWindow;

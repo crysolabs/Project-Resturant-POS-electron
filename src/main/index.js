@@ -1,148 +1,136 @@
-// main.js
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import { electronApp, optimizer } from '@electron-toolkit/utils';
 import { autoUpdater } from 'electron-updater';
 import { join } from 'path';
-import siteWindow from './src/site';
-import loaderWindow from './src/loader';
+import MainWindow from './src/site';
+import SplashScreen from './src/loader';
 import AppTray from './src/tray';
 import packageJson from '../../package.json';
 
-// main exports
-export const appName = packageJson.productName || 'Electron App';
-export const appid = `com.${packageJson.name}.app` || 'com.electron.app';
-export const appDescription = packageJson.description || 'Electron application';
-export const appIconPath = app.isPackaged
-  ? join(process.resourcesPath, 'resources/icon.png')
-  : join(__dirname, '../../build/resources/icon.png');
+class ElectronApp {
+  constructor() {
+    this.appName = packageJson.build.productName || 'Electron App';
+    this.appId = packageJson.build.appId || 'com.electron.app';
+    this.appDescription = packageJson.description || 'Electron application';
+    this.appIconPath = app.isPackaged
+      ? join(process.resourcesPath, 'build/resources/icon.png')
+      : join(__dirname, '../../build/resources/icon.png');
 
-// Global references to prevent garbage collection
-let loaderWindowInstance = null;
-let siteWindowInstance = null;
-let tray = null;
-
-/**
- * Configure auto updater settings
- */
-function setupAutoUpdater() {
-  try {
-    autoUpdater.setFeedURL({
-      provider: 'github',
-      owner: import.meta.env.MAIN_VITE_GITHUB_USERNAME,
-      repo: import.meta.env.MAIN_VITE_GITHUB_REPO,
-      releaseType: packageJson.preview ? 'prerelease' : 'release'
-    });
-
-    autoUpdater.forceDevUpdateConfig = true;
-    autoUpdater.autoDownload = true;
-    autoUpdater.autoRunAppAfterInstall = true;
-
-    // Handle auto updater errors
-    autoUpdater.on('error', (error) => {
-      console.error('Auto updater error:', error);
-    });
-
-    return true;
-  } catch (error) {
-    console.error('Failed to setup auto updater:', error);
-    return false;
+    this.splashScreen = null;
+    this.mainWindow = null;
+    this.tray = null;
   }
-}
 
-/**
- * Create the main application window
- * @returns {Promise<BrowserWindow|null>} The created window or null on error
- */
-async function createMainWindow() {
-  try {
-    // Create loader window
-    loaderWindowInstance = new loaderWindow(siteWindow, autoUpdater);
-    await loaderWindowInstance.load();
+  setupAutoUpdater() {
+    try {
+      autoUpdater.setFeedURL({
+        provider: 'github',
+        owner: import.meta.env.MAIN_VITE_GITHUB_USERNAME,
+        repo: import.meta.env.MAIN_VITE_GITHUB_REPO,
+        releaseType: packageJson.preview ? 'prerelease' : 'release'
+      });
 
-    // Get site window instance
-    siteWindowInstance = loaderWindowInstance.siteWindowInstance;
+      autoUpdater.forceDevUpdateConfig = true;
+      autoUpdater.autoDownload = true;
+      autoUpdater.autoRunAppAfterInstall = true;
 
-    // Set the main window in the tray
-    if (tray && siteWindowInstance) {
-      tray.setMainWindow(siteWindowInstance);
+      autoUpdater.on('error', (error) => console.error('AutoUpdater Error:', error));
+      return true;
+    } catch (error) {
+      console.error('Failed to setup AutoUpdater:', error);
+      return false;
     }
-
-    return siteWindowInstance;
-  } catch (error) {
-    console.error('Error creating main window:', error);
-    dialog.showErrorBox('Application Error', `Failed to start application: ${error.message}`);
-    return null;
   }
-}
 
-/**
- * Initialize the application
- */
-async function initApp() {
-  try {
-    // Set app user model id for windows
-    app.setName(appName);
-    app.setAppUserModelId(appid);
-    app.setLoginItemSettings({
-      openAtLogin: true, // Start on boot
-      openAsHidden: true, // Start minimized
-      path: app.getPath('exe') // Path to the executable
-    });
-    // Optimize renderer process
-    app.on('browser-window-created', (_, window) => {
-      optimizer.watchWindowShortcuts(window);
-    });
+  async createWindows() {
+    try {
+      this.tray = new AppTray(this);
+      this.tray.create();
 
-    // Create system tray
-    tray = new AppTray();
-    tray.create();
+      this.splashScreen = new SplashScreen(this, autoUpdater);
+      await this.splashScreen.load();
 
-    // Create main window
-    const mainWindow = await createMainWindow();
+      this.mainWindow = new MainWindow(this, autoUpdater);
+      await this.mainWindow.load();
+      this.splashScreen.close();
 
-    if (!mainWindow) {
-      throw new Error('Failed to create main window');
-    }
-
-    // Handle macOS activate event
-    app.on('activate', async () => {
-      if (BrowserWindow.getAllWindows().length === 0) {
-        await createMainWindow();
-      } else if (siteWindowInstance && !siteWindowInstance.isVisible()) {
-        siteWindowInstance.show();
+      if (this.tray) {
+        this.tray.setMainWindow(this.mainWindow);
       }
-    });
 
-    return true;
-  } catch (error) {
-    console.error('Failed to initialize app:', error);
-    return false;
+      return this.mainWindow;
+    } catch (error) {
+      console.error('Error creating windows:', error);
+      dialog.showErrorBox('Application Error', `Failed to start: ${error.message}`);
+      return null;
+    }
+  }
+
+  configureAppSettings() {
+    if (app.isPackaged) {
+      app.setName(this.appName);
+      app.setAppUserModelId(this.appId);
+      app.setLoginItemSettings({
+        openAtLogin: true,
+        openAsHidden: true,
+        path: app.getPath('exe')
+      });
+    }
+  }
+
+  optimizeWindows() {
+    app.on('browser-window-created', (_, window) => optimizer.watchWindowShortcuts(window));
+  }
+
+  async initialize() {
+    try {
+      this.configureAppSettings();
+      this.optimizeWindows();
+
+      const mainWindow = await this.createWindows();
+      if (!mainWindow) throw new Error('Main window creation failed');
+
+      app.on('activate', async () => {
+        if (BrowserWindow.getAllWindows().length === 0) {
+          await this.createWindows();
+        } else if (this.mainWindow && !this.mainWindow.isVisible()) {
+          this.mainWindow.show();
+        }
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Initialization failed:', error);
+      return false;
+    }
+  }
+
+  setupErrorHandling() {
+    process.on('uncaughtException', (error) => {
+      console.error('Uncaught Exception:', error);
+      dialog.showErrorBox('Unexpected Error', `An unexpected error occurred: ${error.message}`);
+    });
   }
 }
 
-// App ready event
-app.whenReady().then(async () => {
-  // Set up error handling for uncaught exceptions
-  process.on('uncaughtException', (error) => {
-    console.error('Uncaught exception:', error);
-    dialog.showErrorBox('Unexpected Error', `An unexpected error occurred: ${error.message}`);
-  });
+async function launchApp() {
+  const electronAppInstance = new ElectronApp();
 
-  // Setup auto updater
-  setupAutoUpdater();
+  await app.whenReady();
+  electronAppInstance.setupErrorHandling();
+  electronAppInstance.setupAutoUpdater();
 
-  // Initialize app
-  const success = await initApp();
-
-  if (!success) {
-    console.error('Application initialization failed');
+  const initialized = await electronAppInstance.initialize();
+  if (!initialized) {
+    console.error('Application startup failed');
     app.quit();
   }
-});
 
-app.on('window-all-closed', () => {
-  // On macOS it's common to keep the app running even when all windows are closed
-  if (process.platform !== 'darwin') {
-    // Don't quit - the tray will handle this
-  }
-});
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      // Keep app running in tray
+    }
+  });
+}
+
+launchApp();

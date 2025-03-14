@@ -2,18 +2,17 @@ import electron, { BrowserWindow, app, ipcMain } from 'electron';
 import { join } from 'path';
 import { printer as ThermalPrinter, types as PrinterTypes } from 'node-thermal-printer';
 import DisplayManager from './displayManager';
-import { appIconPath, appName } from '..';
 
 const siteWindow = class extends BrowserWindow {
-  constructor(autoUpdater) {
+  constructor(main, autoUpdater) {
     super({
       width: electron.screen.getPrimaryDisplay().bounds.width,
       height: electron.screen.getPrimaryDisplay().bounds.height,
       x: electron.screen.getPrimaryDisplay().bounds.x,
       y: electron.screen.getPrimaryDisplay().bounds.y,
       autoHideMenuBar: true,
-      icon: appIconPath,
-      title: appName,
+      icon: main.appIconPath,
+      title: main.appName,
       show: false,
       maximizable: true,
       webPreferences: {
@@ -22,6 +21,7 @@ const siteWindow = class extends BrowserWindow {
         contextIsolation: true
       }
     });
+    this.main = main;
     this.hasUpdates = false;
     this.updateInterval;
     this.autoUpdater = autoUpdater;
@@ -133,7 +133,7 @@ const siteWindow = class extends BrowserWindow {
           return { success: true, windowId: options.windowId, status: 'focused' };
         }
 
-        const displayManager = new DisplayManager(options);
+        const displayManager = new DisplayManager(this,options);
         const windowId = displayManager.windowId;
         this.activeWindows.set(windowId, displayManager);
         this.send('display-loaded', { windowId });

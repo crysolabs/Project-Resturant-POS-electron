@@ -1,9 +1,8 @@
 import { BrowserWindow, screen } from 'electron';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
-import { appIconPath, appName } from '..';
 class DisplayManager extends BrowserWindow {
-  constructor(options = {}) {
+  constructor(site, options = {}) {
     const displays = screen.getAllDisplays();
     const targetDisplay = displays[options.displayIndex || 0];
 
@@ -12,9 +11,9 @@ class DisplayManager extends BrowserWindow {
       height: options?.height || targetDisplay.bounds.height,
       x: targetDisplay.bounds.x,
       y: targetDisplay.bounds.y,
-      title: appName,
+      title: site.main.appName,
       autoHideMenuBar: true,
-      icon: appIconPath,
+      icon: site.main.appIconPath,
       show: false,
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),

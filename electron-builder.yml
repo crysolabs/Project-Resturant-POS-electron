@@ -1,5 +1,4 @@
-productName: Resturant POS System
-appId: com.resuturant-pos-system.app
+
 directories:
   buildResources: build
 files:
