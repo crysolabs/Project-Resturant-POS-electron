@@ -68,6 +68,25 @@ class ElectronApp {
   }
 
   configureAppSettings() {
+    const gotTheLock = app.requestSingleInstanceLock();
+
+    if (!gotTheLock) {
+      app.quit();
+      return;
+    }
+
+    // Handle second instance
+    app.on('second-instance', () => {
+      if (this.mainWindow) {
+        // Restore and focus window if minimized
+        if (this.mainWindow.isMinimized()) {
+          this.mainWindow.restore();
+        }
+        this.mainWindow.show();
+        this.mainWindow.focus();
+      }
+    });
+    
     if (app.isPackaged) {
       app.setName(this.appName);
       app.setAppUserModelId(this.appId);
@@ -85,7 +104,6 @@ class ElectronApp {
 
   async initialize() {
     try {
-      this.configureAppSettings();
       this.optimizeWindows();
 
       const mainWindow = await this.createWindows();
@@ -116,7 +134,7 @@ class ElectronApp {
 
 async function launchApp() {
   const electronAppInstance = new ElectronApp();
-
+  electronAppInstance.configureAppSettings();
   await app.whenReady();
   electronAppInstance.setupErrorHandling();
   electronAppInstance.setupAutoUpdater();
