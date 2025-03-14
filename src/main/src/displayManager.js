@@ -7,10 +7,11 @@ class DisplayManager extends BrowserWindow {
     const targetDisplay = displays[options.displayIndex || 0];
 
     super({
-      width: options?.width || targetDisplay.bounds.width,
-      height: options?.height || targetDisplay.bounds.height,
+      width: targetDisplay.bounds.width,
+      height: targetDisplay.bounds.height,
       x: targetDisplay.bounds.x,
       y: targetDisplay.bounds.y,
+      fullscreen: true, // Ensure fullscreen mode
       autoHideMenuBar: true,
       icon: join(__dirname, '../../build/resources/icon.png'),
       show: false,
@@ -20,7 +21,7 @@ class DisplayManager extends BrowserWindow {
         contextIsolation: true
       },
       ...options.windowOptions
-    });
+    });    
     this.displayId = targetDisplay.id;
     this.options = options;
     this.windowId = options?.windowId || Date.now().toString() + randomUUID();
