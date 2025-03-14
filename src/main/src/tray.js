@@ -11,14 +11,15 @@ class AppTray {
     this.isQuitting = false;
     this.appName = appName;
     this.appDescription = appDescription;
+    this.trayIcon = nativeImage
+      .createFromPath(appIconPath)
+      .resize({ width: 16, height: 16, quality: 'best' });
   }
 
   create() {
     // Create tray icon
 
-    const trayIcon = appIconPath;
-
-    this.tray = new Tray(trayIcon);
+    this.tray = new Tray(this.trayIcon);
     this.tray.setToolTip(this.appName);
 
     // Create context menu
@@ -51,10 +52,8 @@ class AppTray {
 
           // Optional: Show notification that app is still running in tray
           if (process.platform === 'win32') {
-            const trayIcon = appIconPath;
-
             this.tray.displayBalloon({
-              icon: trayIcon,
+              icon: this.trayIcon,
               title: this.appName,
               content: this.appDescription
             });
