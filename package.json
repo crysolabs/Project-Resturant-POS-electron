@@ -1,6 +1,6 @@
 {
   "name": "resuturant-pos-system",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "preview": false,
   "description": "Resturant Pos System is a Application made with electron",
   "main": "./out/main/index.js",
