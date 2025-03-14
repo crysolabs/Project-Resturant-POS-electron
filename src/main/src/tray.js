@@ -62,22 +62,6 @@ class AppTray {
         }
       });
     });
-    const gotTheLock = app.requestSingleInstanceLock();
-
-    if (!gotTheLock) {
-      app.quit();
-    } else {
-      app.on('second-instance', () => {
-        // Someone tried to run a second instance, focus our window instead
-        if (this.mainWindow) {
-          if (this.mainWindow.isMinimized()) {
-            this.mainWindow.restore();
-          }
-          this.mainWindow.show();
-          this.mainWindow.focus();
-        }
-      });
-    }
   }
 
   toggleMainWindow() {
