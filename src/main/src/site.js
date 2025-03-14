@@ -25,20 +25,56 @@ const siteWindow = class extends BrowserWindow {
     this.updateInterval;
     this.autoUpdater = autoUpdater;
     this.activeWindows = new Map();
+    // Handle window state changes
+    this.on('hide', this.handleMainWindowHide.bind(this));
+    this.on('show', this.handleMainWindowShow.bind(this));
+    this.on('minimize', this.handleMainWindowHide.bind(this));
+    this.on('restore', this.handleMainWindowShow.bind(this));
+    // this.once('close', this.handleClose.bind(this));
   }
 
   send(event, data) {
     this.webContents.send(event, data);
   }
-  handleEvents() {
-    const handleClose = () => {
-      this.updateInterval && clearInterval(this.updateInterval);
+  handleMainWindowHide() {
+    // Hide all secondary windows when main window is hidden
+    this.activeWindows.forEach((window) => {
+      if (window.isVisible()) {
+        window.hide();
+      }
+    });
+  }
+
+  // Handle main window show event
+  handleMainWindowShow() {
+    // Show all secondary windows that were visible before
+    this.activeWindows.forEach((window) => {
+      console.log(window.wasVisible);
+      if (!window.isVisible()) {
+        window.show();
+      }
+    });
+  }
+  cleanup() {
+    // Clear update interval
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = null;
+    }
+
+    // Remove auto updater listeners
+    if (this.autoUpdater) {
       this.autoUpdater.removeAllListeners();
-      this.activeWindows.forEach((window) => {
-        window.end();
-      });
-      this.destroy();
-    };
+    }
+
+    // Close all child windows
+    this.activeWindows.forEach((window) => {
+      window.cleanup();
+    });
+    this.activeWindows.clear();
+  }
+
+  handleEvents() {
     const handleRequestUpdate = (_) => {
       if (!this.hasUpdates) return;
       this.autoUpdater.quitAndInstall(true, true);
@@ -117,7 +153,7 @@ const siteWindow = class extends BrowserWindow {
         const window = this.activeWindows.get(windowId);
         if (!window) throw new Error('Window not found');
 
-        window.close();
+        window.cleanup();
         this.activeWindows.delete(windowId);
         return { success: true };
       } catch (error) {
@@ -144,12 +180,15 @@ const siteWindow = class extends BrowserWindow {
         activeWindows: activeDisplays
       };
     };
+    const handleCheckForUpdates = () => {
+      this.checkUpdates();
+    };
     ipcMain.handle('focus-window', handleFocusWindow);
     ipcMain.handle('get-display-info', handleGetDisplayInfo);
     ipcMain.handle('open-window', handleOpenWindow);
     ipcMain.handle('close-window', handleCloseWindow);
-    this.once('close', handleClose);
     ipcMain.on('install-updates', handleRequestUpdate);
+    ipcMain.on('check-for-updates', handleCheckForUpdates);
     ipcMain.handle('print-order-receipt', handlePrintOrderReceipt);
   }
   checkUpdates() {

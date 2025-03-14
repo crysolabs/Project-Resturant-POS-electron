@@ -29,7 +29,7 @@ class DisplayManager extends BrowserWindow {
 
   handleEvents() {
     const handleClose = () => {
-      this.end();
+      this.cleanup();
     };
     this.once('close', handleClose);
   }
@@ -50,7 +50,7 @@ class DisplayManager extends BrowserWindow {
     this.handleEvents();
     return this.windowId;
   }
-  end() {
+  cleanup() {
     this.close();
     this.destroy();
     return true;

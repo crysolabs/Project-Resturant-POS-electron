@@ -18,6 +18,7 @@ const loaderWindow = class extends BrowserWindow {
     });
     this.autoUpdater = autoUpdater;
     this.siteWindow = siteWindow;
+    this.siteWindowInstance = null;
     this.retryies = 0;
     this.retryTime = Number(import.meta.env.MAIN_VITE_RETRYTIME);
   }
@@ -129,13 +130,13 @@ const loaderWindow = class extends BrowserWindow {
     this.send('loading-status', {
       status: 'Starting...'
     });
-    await new this.siteWindow(this.autoUpdater).load();
+    this.siteWindowInstance = await new this.siteWindow(this.autoUpdater);
+    await this.siteWindowInstance.load();
     this.close();
   }
 
   async load() {
     if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
-
       this.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/loader/index.html`);
     } else {
       this.loadFile(join(__dirname, '../renderer/loader/index.html'));
@@ -153,7 +154,7 @@ const loaderWindow = class extends BrowserWindow {
     });
     this.reset();
     this.handleClearUpdates();
-    this.loadWindow();
+    await this.loadWindow();
   }
 };
 export default loaderWindow;

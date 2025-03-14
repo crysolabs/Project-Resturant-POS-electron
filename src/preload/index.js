@@ -7,6 +7,7 @@ const electronEvents = class {
       handleLoading: (callback) => ipcRenderer.on('loading-status', callback),
       removehandleLoading: (callback) => ipcRenderer.removeListener('loading-status', callback),
       handleUpdates: (callback) => ipcRenderer.on('update-info', callback),
+      checkUpdates: () => ipcRenderer.send('check-for-updates'),
       removehandleUpdates: (callback) => ipcRenderer.removeListener('update-info', callback),
       printOrderRecepit: (data) => ipcRenderer.invoke('print-order-receipt', data),
       // seperate display manager
