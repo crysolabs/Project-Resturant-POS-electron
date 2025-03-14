@@ -13,7 +13,7 @@ class ElectronApp {
     this.appId = packageJson.build.appId || 'com.electron.app';
     this.appDescription = packageJson.description || 'Electron application';
     this.appIconPath = app.isPackaged
-      ? join(process.resourcesPath, 'build/resources/icon.png')
+      ? join(__dirname, '../../build/resources/icon.png')
       : join(__dirname, '../../build/resources/icon.png');
 
     this.splashScreen = null;

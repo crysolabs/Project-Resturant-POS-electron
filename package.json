@@ -6,9 +6,40 @@
   "main": "./out/main/index.js",
   "author": "achiraGaming",
   "homepage": "https://www.electronjs.org",
-  "build":{
+  "build": {
     "appId": "com.achiraGaming.resuturant-pos-system",
-    "productName": "Resuturant Pos System"
+    "productName": "Resuturant Pos System",
+    "directories": {
+      "buildResources": "build"
+    },
+    "files": [
+      "!**/.vscode/*",
+      "!src/*",
+      "!electron.vite.config.{js,ts,mjs,cjs}",
+      "!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}",
+      "!{.env,.env.*,.npmrc,pnpm-lock.yaml}",
+      "build/resources/**/*",
+      "build/**/*"
+    ],
+    "asarUnpack": [
+      "resources/**"
+    ],
+    "win": {
+      "icon": "build/windows/icons/icon.ico",
+      "target": "nsis"
+    },
+    "nsis": {
+      "installerIcon": "build/windows/icons/icon.ico",
+      "uninstallerIcon": "build/windows/icons/icon.ico",
+      "installerHeaderIcon": "build/windows/icons/icon.ico",
+      "artifactName": "${name}-${version}-setup.${ext}",
+      "uninstallDisplayName": "${productName} Uninstaller",
+      "createDesktopShortcut": "always",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "differentialPackage": true
+    },
+    "publish": []
   },
   "scripts": {
     "format": "prettier --write .",
@@ -17,9 +48,9 @@
     "dev": "electron-vite dev --watch",
     "build": "electron-vite build",
     "postinstall": "electron-builder install-app-deps",
-    "build:win": "npm run build && electron-builder --win --config electron-builder.yml",
-    "build:mac": "npm run build && electron-builder --mac --config electron-builder.yml",
-    "build:linux": "npm run build && electron-builder --linux --config electron-builder.yml"
+    "build:win": "npm run build && electron-builder --win ",
+    "build:mac": "npm run build && electron-builder --mac",
+    "build:linux": "npm run build && electron-builder --linux "
   },
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
