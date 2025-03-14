@@ -6,7 +6,8 @@ import MainWindow from './src/site';
 import SplashScreen from './src/loader';
 import AppTray from './src/tray';
 import packageJson from '../../package.json';
-
+import log from 'electron-log';
+import { existsSync, readdirSync } from 'fs';
 class ElectronApp {
   constructor() {
     this.appName = packageJson.build.productName || 'Electron App';
