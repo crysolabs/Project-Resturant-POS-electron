@@ -10,7 +10,14 @@ import log from 'electron-log';
 import { existsSync, readdirSync } from 'fs';
 class ElectronApp {
   constructor() {
-    this.appName = packageJson.build.productName || 'Electron App';
+    this.preview = packageJson.preview || false;
+    this.devMode = app.isPackaged ? false : true;
+    const baseAppName = packageJson.build.productName || 'Electron App';
+    this.appName = this.devMode
+      ? `${baseAppName} (Dev)`
+      : this.preview
+        ? `${baseAppName} (Preview)`
+        : baseAppName;
     this.appId = packageJson.build.appId || 'com.electron.app';
     this.appDescription = packageJson.description || 'Electron application';
     this.appIconPath = app.isPackaged
@@ -45,19 +52,14 @@ class ElectronApp {
 
   async createWindows() {
     try {
-      this.tray = new AppTray(this);
-      this.tray.create();
-
       this.splashScreen = new SplashScreen(this, autoUpdater);
       await this.splashScreen.load();
-
+      this.tray = new AppTray(this);
+      this.tray.create();
       this.mainWindow = new MainWindow(this, autoUpdater);
+      this.tray.setMainWindow(this.mainWindow);
       await this.mainWindow.load();
       this.splashScreen.close();
-
-      if (this.tray) {
-        this.tray.setMainWindow(this.mainWindow);
-      }
 
       return this.mainWindow;
     } catch (error) {
@@ -86,14 +88,15 @@ class ElectronApp {
         this.mainWindow.focus();
       }
     });
-    
+    app.setName(this.appName);
+
+    app.setAppUserModelId(this.appId);
+
     if (app.isPackaged) {
-      app.setName(this.appName);
-      app.setAppUserModelId(this.appId);
       app.setLoginItemSettings({
         openAtLogin: true,
         openAsHidden: false,
-        enabled:true,
+        enabled: true,
         name: this.appName,
         serviceName: this.appName,
         type: 'app',

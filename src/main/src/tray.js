@@ -16,7 +16,7 @@ class AppTray {
       .resize({ width: 16, height: 16, quality: 'best' });
   }
 
-  create() {
+  create(mainWindow) {
     // Create tray icon
 
     this.tray = new Tray(this.trayIcon);
@@ -32,7 +32,6 @@ class AppTray {
 
     // Setup the close-to-tray behavior
     this.setupCloseToTray();
-
     return this.tray;
   }
 
