@@ -1,6 +1,6 @@
 {
   "name": "resuturant-pos-system",
-  "version": "1.4.7",
+  "version": "1.4.8",
   "preview": false,
   "description": "Resturant Pos System",
   "main": "./out/main/index.js",

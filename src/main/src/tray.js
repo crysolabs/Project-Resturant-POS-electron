@@ -16,7 +16,7 @@ class AppTray {
       .resize({ width: 16, height: 16, quality: 'best' });
   }
 
-  create(mainWindow) {
+  create() {
     // Create tray icon
 
     this.tray = new Tray(this.trayIcon);

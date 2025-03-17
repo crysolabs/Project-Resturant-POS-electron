@@ -54,12 +54,13 @@ class ElectronApp {
     try {
       this.splashScreen = new SplashScreen(this, autoUpdater);
       await this.splashScreen.load();
+      if (this.splashScreen.isDestroyed()) return null;
       this.tray = new AppTray(this);
       this.tray.create();
       this.mainWindow = new MainWindow(this, autoUpdater);
       this.tray.setMainWindow(this.mainWindow);
-      await this.mainWindow.load();
       this.splashScreen.close();
+      await this.mainWindow.load();
 
       return this.mainWindow;
     } catch (error) {
