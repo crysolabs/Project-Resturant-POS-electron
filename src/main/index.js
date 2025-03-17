@@ -55,11 +55,11 @@ class ElectronApp {
       this.splashScreen = new SplashScreen(this, autoUpdater);
       await this.splashScreen.load();
       if (this.splashScreen.isDestroyed()) return null;
+      this.splashScreen.close();
       this.tray = new AppTray(this);
       this.tray.create();
       this.mainWindow = new MainWindow(this, autoUpdater);
       this.tray.setMainWindow(this.mainWindow);
-      this.splashScreen.close();
       await this.mainWindow.load();
 
       return this.mainWindow;
@@ -87,6 +87,11 @@ class ElectronApp {
         }
         this.mainWindow.show();
         this.mainWindow.focus();
+      }
+    });
+    app.on('window-all-closed', () => {
+      if (process.platform !== 'darwin') {
+        // Keep app running in tray
       }
     });
     app.setName(this.appName);
@@ -152,12 +157,6 @@ async function launchApp() {
     console.error('Application startup failed');
     app.quit();
   }
-
-  app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-      // Keep app running in tray
-    }
-  });
 }
 
 launchApp();
