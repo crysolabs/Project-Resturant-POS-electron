@@ -31,6 +31,9 @@ export default defineConfig({
     }
   },
   renderer: {
+    css: {
+      postcss: false
+    },
     resolve: {
       alias: {
         // '@renderer': resolve('src/renderer/src'),
