@@ -11,23 +11,22 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest]
-        node-version: [18.x]
+        node-version: [22.x]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build and package
         run: |
           npm run lint
           npm run format
-          npm run build
 
       - name: Build Windows
         if: matrix.os == 'windows-latest'
@@ -58,7 +57,7 @@ jobs:
       preview: ${{ steps.get_preview.outputs.preview }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Download artifacts
         uses: actions/download-artifact@v4

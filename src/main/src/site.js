@@ -1,6 +1,6 @@
 import electron, { BrowserWindow, app, ipcMain } from 'electron';
 import { join } from 'path';
-import { printer as ThermalPrinter, types as PrinterTypes } from 'node-thermal-printer';
+import { printer as ThermalPrinter } from 'node-thermal-printer';
 import DisplayManager from './displayManager';
 
 const siteWindow = class extends BrowserWindow {
@@ -133,7 +133,7 @@ const siteWindow = class extends BrowserWindow {
           return { success: true, windowId: options.windowId, status: 'focused' };
         }
 
-        const displayManager = new DisplayManager(this,options);
+        const displayManager = new DisplayManager(this, options);
         const windowId = displayManager.windowId;
         this.activeWindows.set(windowId, displayManager);
         this.send('display-loaded', { windowId });
@@ -206,7 +206,8 @@ const siteWindow = class extends BrowserWindow {
   }
   async load() {
     this.maximize();
-    this.loadURL(import.meta.env.MAIN_VITE_APPURI);
+    const appUrl = new URL('/dashboard', import.meta.env.MAIN_VITE_APPURI);
+    await this.loadURL(appUrl.toString());
     await new Promise((resolve, reject) => {
       this.once('ready-to-show', () => {
         resolve();

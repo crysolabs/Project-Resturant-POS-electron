@@ -1,13 +1,11 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
-import { electronApp, optimizer } from '@electron-toolkit/utils';
+import { app, BrowserWindow, dialog } from 'electron';
+import { optimizer } from '@electron-toolkit/utils';
 import { autoUpdater } from 'electron-updater';
 import { join } from 'path';
 import MainWindow from './src/site';
 import SplashScreen from './src/loader';
 import AppTray from './src/tray';
 import packageJson from '../../package.json';
-import log from 'electron-log';
-import { existsSync, readdirSync } from 'fs';
 class ElectronApp {
   constructor() {
     this.preview = packageJson.preview || false;
