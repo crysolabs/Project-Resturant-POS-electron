@@ -136,6 +136,7 @@ export default class MainWindow extends BrowserWindow {
         const action = raw?.action;
         if (action === 'minimize') this.minimize();
         else if (action === 'maximize') this.isMaximized() ? this.unmaximize() : this.maximize();
+        else if (action === 'fullscreen') this.setFullScreen(!this.isFullScreen());
         else if (action === 'close') this.close();
         else throw new Error('Unsupported window action');
         return { success: true, state: this.getWindowState() };

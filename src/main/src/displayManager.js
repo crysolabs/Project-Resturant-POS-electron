@@ -29,8 +29,8 @@ export default class DisplayManager extends BrowserWindow {
       backgroundColor: '#f6f8fb',
       autoHideMenuBar: true,
       frame: false,
-      fullscreen: options.fullscreen,
-      kiosk: options.kiosk,
+      fullscreen: false,
+      kiosk: false,
       icon: site.main.appIconPath,
       show: false,
       webPreferences: {
@@ -67,18 +67,24 @@ export default class DisplayManager extends BrowserWindow {
       /* recovery handler owns retry */
     }
     this.show();
+    this.setDisplayMode(true, this.kioskEnabled);
     return this.windowId;
   }
   placeOn(display) {
+    const kioskEnabled = this.kioskEnabled;
     this.displayId = String(display.id);
-    this.setBounds(display.bounds);
-    if (this.isFullScreen()) this.setFullScreen(true);
-    if (this.kioskEnabled) this.setKiosk(true);
+    this.setDisplayMode(false, false);
+    this.setBounds(display.bounds, false);
+    this.setDisplayMode(true, kioskEnabled);
   }
   setDisplayMode(fullscreen, kiosk = fullscreen) {
     this.kioskEnabled = kiosk;
+    if (kiosk) {
+      this.setKiosk(true);
+      return;
+    }
+    if (this.isKiosk()) this.setKiosk(false);
     this.setFullScreen(fullscreen);
-    this.setKiosk(kiosk);
   }
   cleanup() {
     if (!this.isDestroyed()) this.destroy();
