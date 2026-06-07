@@ -1,6 +1,7 @@
 import { BrowserWindow, screen } from 'electron';
 import { join } from 'path';
-import { randomUUID } from 'crypto';
+import { POS_SESSION_PARTITION } from './config';
+import { selectDisplay } from './displayUtils';
 import {
   DISPLAY_ROUTE,
   appUrl,
@@ -9,86 +10,77 @@ import {
   isElectronRoute,
   openInBrowser
 } from './navigation';
+import { attachRecovery } from './recovery';
 
-class DisplayManager extends BrowserWindow {
-  constructor(site, options = {}) {
-    const displays = screen.getAllDisplays();
-    const targetDisplay =
-      displays[options.displayIndex] ||
-      displays.find((display) => !display.internal) ||
-      displays[1] ||
-      displays[0];
-    const preloadPath = join(__dirname, '../preload/index.js');
-
+export default class DisplayManager extends BrowserWindow {
+  constructor(site, options) {
+    const target = selectDisplay(
+      screen.getAllDisplays(),
+      options.displayId,
+      site.preferences.get('customerDisplayId')
+    );
+    if (!target) throw new Error('No connected display is available');
     super({
-      width: targetDisplay.bounds.width,
-      height: targetDisplay.bounds.height,
-      minWidth: 1024,
-      minHeight: 700,
-      x: targetDisplay.bounds.x,
-      y: targetDisplay.bounds.y,
+      width: target.bounds.width,
+      height: target.bounds.height,
+      x: target.bounds.x,
+      y: target.bounds.y,
       title: site.main.appName,
       backgroundColor: '#f6f8fb',
       autoHideMenuBar: true,
       frame: false,
-      kiosk: true,
-      fullscreen: true,
+      fullscreen: options.fullscreen,
+      kiosk: options.kiosk,
       icon: site.main.appIconPath,
       show: false,
       webPreferences: {
-        preload: preloadPath,
+        preload: join(__dirname, '../preload/index.js'),
+        partition: POS_SESSION_PARTITION,
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: true
       }
     });
-
-    this.displayId = targetDisplay.id;
-    this.options = options;
-    this.windowId = options.windowId || `customer-display-${randomUUID()}`;
+    this.windowId = options.windowId;
+    this.displayId = String(target.id);
+    this.targetUrl = appUrl(DISPLAY_ROUTE);
+    this.kioskEnabled = options.kiosk;
     this.webContents.setUserAgent(electronUserAgent(this.webContents.getUserAgent()));
+    attachRecovery(this, () => this.targetUrl);
+    this.configureNavigation();
   }
-
-  handleEvents() {
+  configureNavigation() {
     this.webContents.on('will-navigate', (event, url) => {
       if (isElectronRoute(url)) return;
-
       event.preventDefault();
-      if (isBrowserOnlyRoute(url)) {
-        openInBrowser(url);
-      }
+      if (isBrowserOnlyRoute(url)) openInBrowser(url);
     });
-
     this.webContents.setWindowOpenHandler(({ url }) => {
-      if (isBrowserOnlyRoute(url) || !isElectronRoute(url)) {
-        openInBrowser(url);
-      }
+      if (isBrowserOnlyRoute(url) || !isElectronRoute(url)) openInBrowser(url);
       return { action: 'deny' };
     });
   }
-
-  async load(url = appUrl(DISPLAY_ROUTE)) {
-    this.handleEvents();
-    await this.loadURL(isElectronRoute(url) ? url : appUrl(DISPLAY_ROUTE), {
-      userAgent: electronUserAgent(this.webContents.getUserAgent())
-    });
-
-    await new Promise((resolve) => {
-      this.once('ready-to-show', resolve);
-    });
-
+  async load() {
+    try {
+      await this.loadURL(this.targetUrl);
+    } catch {
+      /* recovery handler owns retry */
+    }
     this.show();
-    this.setFullScreen(true);
-    this.setKiosk(true);
     return this.windowId;
   }
-
+  placeOn(display) {
+    this.displayId = String(display.id);
+    this.setBounds(display.bounds);
+    if (this.isFullScreen()) this.setFullScreen(true);
+    if (this.kioskEnabled) this.setKiosk(true);
+  }
+  setDisplayMode(fullscreen, kiosk = fullscreen) {
+    this.kioskEnabled = kiosk;
+    this.setFullScreen(fullscreen);
+    this.setKiosk(kiosk);
+  }
   cleanup() {
-    if (!this.isDestroyed()) {
-      this.destroy();
-    }
-    return true;
+    if (!this.isDestroyed()) this.destroy();
   }
 }
-
-export default DisplayManager;

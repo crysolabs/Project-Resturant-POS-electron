@@ -1,11 +1,16 @@
-import electron, { BrowserWindow, ipcMain } from 'electron';
+import { BrowserWindow, ipcMain, screen } from 'electron';
 import { join } from 'path';
-import { printer as ThermalPrinter } from 'node-thermal-printer';
 import DisplayManager from './displayManager';
+import { DISPLAY_WINDOW_ID, POS_SESSION_PARTITION } from './config';
+import {
+  selectDisplay,
+  validateFullScreenOptions,
+  validateOpenWindowOptions,
+  validateWindowOptions
+} from './displayUtils';
 import {
   APP_ORIGIN,
   DEFAULT_ROUTE,
-  DISPLAY_ROUTE,
   appUrl,
   electronUserAgent,
   isBrowserOnlyRoute,
@@ -13,297 +18,228 @@ import {
   isLogoutRoute,
   openInBrowser
 } from './navigation';
+import { attachRecovery } from './recovery';
 
-const DISPLAY_WINDOW_ID = 'customer-display';
-
-const siteWindow = class extends BrowserWindow {
-  constructor(main, autoUpdater) {
-    const primaryDisplay = electron.screen.getPrimaryDisplay();
-    const preloadPath = join(__dirname, '../preload/index.js');
-
+const IPC_CHANNELS = ['focus-window', 'set-full-screen', 'get-display-info', 'open-window'];
+export default class MainWindow extends BrowserWindow {
+  constructor(main, autoUpdater, preferences) {
+    const primary = screen.getPrimaryDisplay();
     super({
       width: 1440,
       height: 900,
       minWidth: 1024,
       minHeight: 700,
-      x: primaryDisplay.bounds.x,
-      y: primaryDisplay.bounds.y,
+      x: primary.bounds.x,
+      y: primary.bounds.y,
       backgroundColor: '#f6f8fb',
       autoHideMenuBar: true,
       icon: main.appIconPath,
       title: main.appName,
       show: false,
-      maximizable: true,
       webPreferences: {
-        preload: preloadPath,
+        preload: join(__dirname, '../preload/index.js'),
+        partition: POS_SESSION_PARTITION,
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: true
       }
     });
     this.main = main;
-    this.hasUpdates = false;
-    this.updateInterval = null;
     this.autoUpdater = autoUpdater;
+    this.preferences = preferences;
     this.activeWindows = new Map();
+    this.targetUrl = appUrl(DEFAULT_ROUTE);
+    this.screenHandlers = [];
     this.webContents.setUserAgent(electronUserAgent(this.webContents.getUserAgent()));
-
-    // Handle window state changes
-    this.on('hide', this.handleMainWindowHide.bind(this));
-    this.on('show', this.handleMainWindowShow.bind(this));
-    this.on('minimize', this.handleMainWindowHide.bind(this));
-    this.on('restore', this.handleMainWindowShow.bind(this));
-    this.on('closed', this.cleanup.bind(this));
+    attachRecovery(this, () => this.targetUrl);
+    this.configureNavigation();
+    this.configureWindowEvents();
+    this.registerIpc();
+    this.registerDisplayEvents();
   }
-
-  send(event, data) {
-    this.webContents.send(event, data);
+  send(event, payload) {
+    if (!this.isDestroyed()) this.webContents.send(event, payload);
   }
-
-  handleMainWindowHide() {
-    this.activeWindows.forEach((window) => {
-      if (window.isVisible()) {
-        window.hide();
-      }
-    });
+  configureWindowEvents() {
+    this.on('hide', () => this.activeWindows.forEach((window) => window.hide()));
+    this.on('show', () => this.activeWindows.forEach((window) => window.show()));
+    this.on('closed', () => this.cleanup());
   }
-
-  handleMainWindowShow() {
-    this.activeWindows.forEach((window) => {
-      if (!window.isVisible()) {
-        window.show();
-      }
-    });
-  }
-
-  cleanup() {
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval);
-      this.updateInterval = null;
-    }
-
-    if (this.autoUpdater) {
-      this.autoUpdater.removeAllListeners();
-    }
-
-    this.activeWindows.forEach((window) => {
-      window.cleanup();
-    });
-    this.activeWindows.clear();
-  }
-
-  async clearSessionAndLoadLogin() {
-    await this.webContents.session.clearStorageData({
-      storages: ['cookies', 'localstorage', 'indexdb', 'serviceworkers', 'cachestorage']
-    });
-    await this.loadURL(appUrl(DEFAULT_ROUTE), {
-      userAgent: electronUserAgent(this.webContents.getUserAgent())
-    });
-  }
-
   configureNavigation() {
     this.webContents.on('will-navigate', (event, url) => {
       if (isLogoutRoute(url)) {
         event.preventDefault();
-        this.clearSessionAndLoadLogin();
-        return;
-      }
-
-      if (isElectronRoute(url)) return;
-
-      event.preventDefault();
-      if (isBrowserOnlyRoute(url) || /^https?:\/\//.test(url)) {
-        openInBrowser(url);
+        this.logout();
+      } else if (!isElectronRoute(url)) {
+        event.preventDefault();
+        if (isBrowserOnlyRoute(url) || /^https?:/.test(url)) openInBrowser(url);
+      } else {
+        this.targetUrl = url;
       }
     });
-
-    this.webContents.session.webRequest.onCompleted(
-      { urls: [`${APP_ORIGIN}/logout*`, `${APP_ORIGIN}/sign-out*`, `${APP_ORIGIN}/signout*`] },
-      () => {
-        this.clearSessionAndLoadLogin();
-      }
-    );
-
     this.webContents.setWindowOpenHandler(({ url }) => {
       if (isElectronRoute(url)) {
-        this.loadURL(url, { userAgent: electronUserAgent(this.webContents.getUserAgent()) });
-      } else if (isLogoutRoute(url)) {
-        this.clearSessionAndLoadLogin();
-      } else if (isBrowserOnlyRoute(url) || /^https?:\/\//.test(url)) {
-        openInBrowser(url);
-      }
-
+        this.targetUrl = url;
+        this.loadURL(url);
+      } else if (isLogoutRoute(url)) this.logout();
+      else if (isBrowserOnlyRoute(url) || /^https?:/.test(url)) openInBrowser(url);
       return { action: 'deny' };
     });
+    this.webContents.session.webRequest.onCompleted(
+      { urls: [APP_ORIGIN + '/logout*', APP_ORIGIN + '/sign-out*', APP_ORIGIN + '/signout*'] },
+      () => this.logout()
+    );
   }
-
-  handleEvents() {
-    const handleRequestUpdate = (_) => {
-      if (!this.hasUpdates) return;
-      this.autoUpdater.quitAndInstall(true, true);
-    };
-    const handlePrintOrderReceipt = async (data) => {
-      const printer = new ThermalPrinter.printer({
-        type: ThermalPrinter.types.EPSON,
-        interface: 'printer:POS-58',
-        options: {
-          timeout: 1000
-        }
-      });
-
+  isTrustedSender(event) {
+    return event.sender === this.webContents && !event.sender.isDestroyed();
+  }
+  ipcResult(event, handler) {
+    return async (_event, options) => {
+      if (!this.isTrustedSender(_event)) return { success: false, error: 'Untrusted IPC sender' };
       try {
-        printer.alignCenter();
-        printer.println(data.businessName);
-        printer.drawLine();
-
-        data.items.forEach((item) => {
-          printer.alignLeft();
-          printer.print(`${item.quantity}x ${item.name}`);
-          printer.alignRight();
-          printer.println(`$${item.price}`);
+        return await handler(options);
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    };
+  }
+  registerIpc() {
+    for (const channel of IPC_CHANNELS) ipcMain.removeHandler(channel);
+    ipcMain.handle(
+      'open-window',
+      this.ipcResult(null, async (raw = {}) => {
+        const options = validateOpenWindowOptions(raw);
+        const existing = this.activeWindows.get(DISPLAY_WINDOW_ID);
+        if (existing && !existing.isDestroyed()) {
+          existing.show();
+          existing.focus();
+          return {
+            success: true,
+            windowId: DISPLAY_WINDOW_ID,
+            displayId: existing.displayId,
+            status: 'focused'
+          };
+        }
+        const display = new DisplayManager(this, options);
+        this.activeWindows.set(DISPLAY_WINDOW_ID, display);
+        await this.preferences.set('customerDisplayId', display.displayId);
+        display.once('closed', () => {
+          this.activeWindows.delete(DISPLAY_WINDOW_ID);
+          this.send('display-closed', {
+            windowId: DISPLAY_WINDOW_ID,
+            displayId: display.displayId,
+            reason: 'closed'
+          });
         });
-
-        printer.drawLine();
-        printer.alignRight();
-        printer.println(`Total: $${data.total}`);
-        printer.cut();
-
-        await printer.execute();
-        return { success: true };
-      } catch (error) {
-        return { success: false, error: error.message };
-      }
-    };
-    const handleFocusWindow = (_, options = {}) => {
-      try {
-        const windowId = options.windowId || DISPLAY_WINDOW_ID;
-        const existingWindow = this.activeWindows.get(windowId);
-
-        if (!existingWindow) {
-          return { success: false, error: 'Window not found' };
-        }
-
-        existingWindow.show();
-        existingWindow.focus();
-        return { success: true, windowId, status: 'focused' };
-      } catch (error) {
-        return { success: false, error: error.message };
-      }
-    };
-    const handleSetFullScreen = (_, options = {}) => {
-      try {
-        const windowId = options.windowId || DISPLAY_WINDOW_ID;
-        const existingWindow = this.activeWindows.get(windowId);
-
-        if (!existingWindow) {
-          return { success: false, error: 'Window not found' };
-        }
-
-        const fullScreen = options.fullScreen !== false;
-        existingWindow.setFullScreen(fullScreen);
-        existingWindow.setKiosk(fullScreen);
-        return { success: true, windowId, fullScreen };
-      } catch (error) {
-        return { success: false, error: error.message };
-      }
-    };
-    const handleOpenWindow = async (_, options = {}) => {
-      try {
-        const windowId = DISPLAY_WINDOW_ID;
-
-        if (this.activeWindows.has(windowId)) {
-          const existingWindow = this.activeWindows.get(windowId);
-          existingWindow.show();
-          existingWindow.focus();
-          return { success: true, windowId, status: 'focused' };
-        }
-
-        const displayManager = new DisplayManager(this, { ...options, windowId });
-        this.activeWindows.set(windowId, displayManager);
-        displayManager.on('closed', () => {
-          this.activeWindows.delete(windowId);
-          this.send('display-closed', { windowId });
+        await display.load();
+        this.send('display-loaded', {
+          windowId: DISPLAY_WINDOW_ID,
+          displayId: display.displayId,
+          status: 'created'
         });
-
-        await displayManager.load(appUrl(DISPLAY_ROUTE));
-        this.send('display-loaded', { windowId });
-
-        return { success: true, windowId, status: 'created' };
-      } catch (error) {
-        return { success: false, error: error.message };
-      }
-    };
-    const handleCloseWindow = async (_, options = {}) => {
-      try {
-        const windowId =
-          typeof options === 'string' ? options : options.windowId || DISPLAY_WINDOW_ID;
-        const window = this.activeWindows.get(windowId);
-        if (!window) throw new Error('Window not found');
-
-        window.cleanup();
-        this.activeWindows.delete(windowId);
-        this.send('display-closed', { windowId });
-        return { success: true };
-      } catch (error) {
-        return { success: false, error: error.message };
-      }
-    };
-
-    const handleGetDisplayInfo = () => {
-      const displays = electron.screen.getAllDisplays();
-      const activeDisplays = Array.from(this.activeWindows.entries()).map(([id, window]) => ({
-        id,
-        bounds: window.getBounds(),
-        displayId: window.displayId
-      }));
-
-      return {
-        success: true,
-        displays: displays.map((display) => ({
-          id: display.id,
-          bounds: display.bounds,
-          isInternal: display.internal,
-          isActive: activeDisplays.some((activeDisplay) => activeDisplay.displayId === display.id)
-        })),
-        activeWindows: activeDisplays
-      };
-    };
-    const handleCheckForUpdates = () => {
-      this.checkUpdates();
-    };
-    ipcMain.handle('focus-window', handleFocusWindow);
-    ipcMain.handle('set-full-screen', handleSetFullScreen);
-    ipcMain.handle('get-display-info', handleGetDisplayInfo);
-    ipcMain.handle('open-window', handleOpenWindow);
-    ipcMain.handle('close-window', handleCloseWindow);
-    ipcMain.on('install-updates', handleRequestUpdate);
-    ipcMain.on('check-for-updates', handleCheckForUpdates);
-    ipcMain.handle('print-order-receipt', handlePrintOrderReceipt);
+        return {
+          success: true,
+          windowId: DISPLAY_WINDOW_ID,
+          displayId: display.displayId,
+          status: 'created'
+        };
+      })
+    );
+    ipcMain.handle(
+      'focus-window',
+      this.ipcResult(null, async (raw) => {
+        validateWindowOptions(raw);
+        const display = this.requireDisplay();
+        display.show();
+        display.focus();
+        return {
+          success: true,
+          windowId: DISPLAY_WINDOW_ID,
+          displayId: display.displayId,
+          status: 'focused'
+        };
+      })
+    );
+    ipcMain.handle(
+      'set-full-screen',
+      this.ipcResult(null, async (raw) => {
+        const options = validateFullScreenOptions(raw);
+        const display = this.requireDisplay();
+        display.setDisplayMode(options.fullscreen, options.fullscreen);
+        return {
+          success: true,
+          windowId: DISPLAY_WINDOW_ID,
+          displayId: display.displayId,
+          fullscreen: options.fullscreen
+        };
+      })
+    );
+    ipcMain.handle(
+      'get-display-info',
+      this.ipcResult(null, async () => {
+        const active = this.activeWindows.get(DISPLAY_WINDOW_ID);
+        return {
+          success: true,
+          displays: screen.getAllDisplays().map((display) => ({
+            id: String(display.id),
+            bounds: display.bounds,
+            isInternal: display.internal,
+            isActive: active?.displayId === String(display.id)
+          })),
+          activeWindows:
+            active && !active.isDestroyed()
+              ? [{ id: DISPLAY_WINDOW_ID, displayId: active.displayId, bounds: active.getBounds() }]
+              : []
+        };
+      })
+    );
   }
-  checkUpdates() {
-    this.autoUpdater.checkForUpdates();
+  requireDisplay() {
+    const display = this.activeWindows.get(DISPLAY_WINDOW_ID);
+    if (!display || display.isDestroyed()) throw new Error('Window not found');
+    return display;
   }
-  updateHandler() {
-    this.updateInterval = setInterval(async () => {
-      this.checkUpdates();
-    }, 1000 * 60);
-    const handleUpdateDownload = () => {
-      this.hasUpdates = true;
-      this.send('update-info', { status: 'downloaded' });
-    };
-    this.autoUpdater.on('update-downloaded', handleUpdateDownload);
+  registerDisplayEvents() {
+    for (const eventName of ['display-added', 'display-removed', 'display-metrics-changed']) {
+      const handler = () => this.relocateDisplay();
+      screen.on(eventName, handler);
+      this.screenHandlers.push([eventName, handler]);
+    }
+  }
+  async relocateDisplay() {
+    const display = this.activeWindows.get(DISPLAY_WINDOW_ID);
+    if (!display || display.isDestroyed()) return;
+    const target = selectDisplay(
+      screen.getAllDisplays(),
+      display.displayId,
+      this.preferences.get('customerDisplayId')
+    );
+    if (!target) return;
+    display.placeOn(target);
+    await this.preferences.set('customerDisplayId', String(target.id));
+  }
+  async logout() {
+    for (const display of this.activeWindows.values()) display.cleanup();
+    this.activeWindows.clear();
+    await this.webContents.session.clearStorageData({
+      storages: ['cookies', 'localstorage', 'indexdb', 'serviceworkers', 'cachestorage']
+    });
+    this.targetUrl = appUrl(DEFAULT_ROUTE);
+    await this.loadURL(this.targetUrl);
   }
   async load() {
-    this.configureNavigation();
-    await this.loadURL(appUrl(DEFAULT_ROUTE), {
-      userAgent: electronUserAgent(this.webContents.getUserAgent())
-    });
-    await new Promise((resolve) => {
-      this.once('ready-to-show', resolve);
-    });
+    try {
+      await this.loadURL(this.targetUrl);
+    } catch {
+      /* recovery handler owns retry */
+    }
     this.show();
-    this.handleEvents();
-    this.updateHandler();
   }
-};
-export default siteWindow;
+  cleanup() {
+    for (const channel of IPC_CHANNELS) ipcMain.removeHandler(channel);
+    for (const [eventName, handler] of this.screenHandlers)
+      screen.removeListener(eventName, handler);
+    for (const display of this.activeWindows.values()) display.cleanup();
+    this.activeWindows.clear();
+  }
+}
