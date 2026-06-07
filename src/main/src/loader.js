@@ -1,4 +1,4 @@
-import electron, { BrowserWindow, app, ipcMain } from 'electron';
+import { BrowserWindow, app } from 'electron';
 import { join } from 'path';
 
 const loaderWindow = class extends BrowserWindow {
@@ -13,8 +13,9 @@ const loaderWindow = class extends BrowserWindow {
       icon: main.appIconPath,
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
-        nodeIntegration: true,
-        contextIsolation: true
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true
       }
     });
     this.main = main;

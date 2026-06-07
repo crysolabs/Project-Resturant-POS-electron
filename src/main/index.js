@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from 'electron';
+import { app, BrowserWindow, dialog, session } from 'electron';
 import { optimizer } from '@electron-toolkit/utils';
 import { autoUpdater } from 'electron-updater';
 import { join } from 'path';
@@ -6,6 +6,7 @@ import MainWindow from './src/site';
 import SplashScreen from './src/loader';
 import AppTray from './src/tray';
 import packageJson from '../../package.json';
+import { electronUserAgent } from './src/navigation';
 class ElectronApp {
   constructor() {
     this.preview = packageJson.preview || false;
@@ -133,6 +134,18 @@ class ElectronApp {
       console.error('Initialization failed:', error);
       return false;
     }
+  }
+
+  setupUserAgent() {
+    app.userAgentFallback = electronUserAgent(app.userAgentFallback || '');
+    session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+      callback({
+        requestHeaders: {
+          ...details.requestHeaders,
+          'User-Agent': electronUserAgent(details.requestHeaders['User-Agent'] || '')
+        }
+      });
+    });
   }
 
   setupErrorHandling() {
