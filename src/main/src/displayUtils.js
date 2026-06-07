@@ -46,3 +46,16 @@ export function validateFullScreenOptions(options) {
   if (typeof options.fullscreen !== 'boolean') throw new Error('fullscreen must be a boolean');
   return { ...result, fullscreen: options.fullscreen };
 }
+
+export function validateDisplayPreferences(preferences) {
+  if (!preferences || typeof preferences !== 'object' || Array.isArray(preferences))
+    throw new Error('Preferences must be an object');
+  const result = {};
+  for (const key of ['cashierDisplayId', 'customerDisplayId']) {
+    if (preferences[key] === undefined) continue;
+    if (preferences[key] !== null && !['string', 'number'].includes(typeof preferences[key]))
+      throw new Error(key + ' must be a string, number, or null');
+    result[key] = normalizeDisplayId(preferences[key]);
+  }
+  return result;
+}

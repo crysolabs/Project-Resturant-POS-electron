@@ -4,6 +4,7 @@ import DisplayManager from './displayManager';
 import { DISPLAY_WINDOW_ID, POS_SESSION_PARTITION } from './config';
 import {
   selectDisplay,
+  validateDisplayPreferences,
   validateFullScreenOptions,
   validateOpenWindowOptions,
   validateWindowOptions
@@ -20,7 +21,14 @@ import {
 } from './navigation';
 import { attachRecovery } from './recovery';
 
-const IPC_CHANNELS = ['focus-window', 'set-full-screen', 'get-display-info', 'open-window'];
+const IPC_CHANNELS = [
+  'focus-window',
+  'set-full-screen',
+  'get-display-info',
+  'get-display-preferences',
+  'set-display-preferences',
+  'open-window'
+];
 export default class MainWindow extends BrowserWindow {
   constructor(main, autoUpdater, preferences) {
     const primary = screen.getPrimaryDisplay();
@@ -51,7 +59,7 @@ export default class MainWindow extends BrowserWindow {
     this.targetUrl = appUrl(DEFAULT_ROUTE);
     this.screenHandlers = [];
     this.webContents.setUserAgent(electronUserAgent(this.webContents.getUserAgent()));
-    attachRecovery(this, () => this.targetUrl);
+    attachRecovery(this, () => this.targetUrl, { showOfflineAfterFirstLoad: false });
     this.configureNavigation();
     this.configureWindowEvents();
     this.registerIpc();
@@ -178,12 +186,18 @@ export default class MainWindow extends BrowserWindow {
       'get-display-info',
       this.ipcResult(null, async () => {
         const active = this.activeWindows.get(DISPLAY_WINDOW_ID);
+        const primary = screen.getPrimaryDisplay();
+        const preferences = this.getDisplayPreferences();
         return {
           success: true,
+          preferences,
           displays: screen.getAllDisplays().map((display) => ({
             id: String(display.id),
             bounds: display.bounds,
             isInternal: display.internal,
+            isPrimary: String(display.id) === String(primary.id),
+            isCashierDisplay: preferences.cashierDisplayId === String(display.id),
+            isCustomerDisplay: preferences.customerDisplayId === String(display.id),
             isActive: active?.displayId === String(display.id)
           })),
           activeWindows:
@@ -193,6 +207,46 @@ export default class MainWindow extends BrowserWindow {
         };
       })
     );
+    ipcMain.handle(
+      'get-display-preferences',
+      this.ipcResult(null, async () => ({
+        success: true,
+        preferences: this.getDisplayPreferences()
+      }))
+    );
+    ipcMain.handle(
+      'set-display-preferences',
+      this.ipcResult(null, async (raw = {}) => {
+        const preferences = validateDisplayPreferences(raw);
+        for (const [key, value] of Object.entries(preferences))
+          await this.preferences.set(key, value);
+        await this.placeCashierWindow();
+        await this.relocateDisplay(true);
+        return { success: true, preferences: this.getDisplayPreferences() };
+      })
+    );
+  }
+  getDisplayPreferences() {
+    return {
+      cashierDisplayId: this.preferences.get('cashierDisplayId') || null,
+      customerDisplayId: this.preferences.get('customerDisplayId') || null
+    };
+  }
+  async placeCashierWindow() {
+    const target = selectDisplay(
+      screen.getAllDisplays(),
+      this.preferences.get('cashierDisplayId'),
+      null
+    );
+    if (!target || this.isDestroyed()) return;
+    const current = screen.getDisplayMatching(this.getBounds());
+    if (String(current.id) === String(target.id)) return;
+    this.setBounds({
+      x: target.workArea.x,
+      y: target.workArea.y,
+      width: Math.min(Math.max(1024, this.getBounds().width), target.workArea.width),
+      height: Math.min(Math.max(700, this.getBounds().height), target.workArea.height)
+    });
   }
   requireDisplay() {
     const display = this.activeWindows.get(DISPLAY_WINDOW_ID);
@@ -206,12 +260,12 @@ export default class MainWindow extends BrowserWindow {
       this.screenHandlers.push([eventName, handler]);
     }
   }
-  async relocateDisplay() {
+  async relocateDisplay(preferRemembered = false) {
     const display = this.activeWindows.get(DISPLAY_WINDOW_ID);
     if (!display || display.isDestroyed()) return;
     const target = selectDisplay(
       screen.getAllDisplays(),
-      display.displayId,
+      preferRemembered ? null : display.displayId,
       this.preferences.get('customerDisplayId')
     );
     if (!target) return;
@@ -228,6 +282,7 @@ export default class MainWindow extends BrowserWindow {
     await this.loadURL(this.targetUrl);
   }
   async load() {
+    await this.placeCashierWindow();
     try {
       await this.loadURL(this.targetUrl);
     } catch {

@@ -5,9 +5,11 @@ export function reconnectDelay(attempt, delays = RETRY_DELAYS) {
   return delays[Math.min(Math.max(attempt, 0), delays.length - 1)];
 }
 
-export function attachRecovery(window, getTargetUrl) {
+export function attachRecovery(window, getTargetUrl, options = {}) {
   let attempt = 0;
   let retryTimer = null;
+  let hasLoadedApp = false;
+  const showOfflineAfterFirstLoad = options.showOfflineAfterFirstLoad !== false;
   const clearRetry = () => {
     if (retryTimer) clearTimeout(retryTimer);
     retryTimer = null;
@@ -16,12 +18,14 @@ export function attachRecovery(window, getTargetUrl) {
     if (window.isDestroyed()) return;
     clearRetry();
     const delay = reconnectDelay(attempt++);
-    try {
-      await window.loadFile(join(__dirname, '../renderer/offline/index.html'), {
-        query: { reason, retryIn: String(Math.ceil(delay / 1000)) }
-      });
-    } catch (error) {
-      console.error('Failed to show offline screen:', error);
+    if (!hasLoadedApp || showOfflineAfterFirstLoad) {
+      try {
+        await window.loadFile(join(__dirname, '../renderer/offline/index.html'), {
+          query: { reason, retryIn: String(Math.ceil(delay / 1000)) }
+        });
+      } catch (error) {
+        console.error('Failed to show offline screen:', error);
+      }
     }
     retryTimer = setTimeout(async () => {
       if (window.isDestroyed()) return;
@@ -41,6 +45,7 @@ export function attachRecovery(window, getTargetUrl) {
   );
   window.webContents.on('did-finish-load', () => {
     if (/^https?:/.test(window.webContents.getURL())) {
+      hasLoadedApp = true;
       attempt = 0;
       clearRetry();
     }

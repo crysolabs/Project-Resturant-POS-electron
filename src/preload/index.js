@@ -19,6 +19,9 @@ contextBridge.exposeInMainWorld(
   'electronAPI',
   Object.freeze({
     getDisplayInfo: () => ipcRenderer.invoke('get-display-info'),
+    getDisplayPreferences: () => ipcRenderer.invoke('get-display-preferences'),
+    setDisplayPreferences: (preferences = {}) =>
+      ipcRenderer.invoke('set-display-preferences', preferences),
     openWindow: (options = {}) => ipcRenderer.invoke('open-window', options),
     focusWindow: (options = {}) => ipcRenderer.invoke('focus-window', options),
     setFullScreen: (options = {}) => ipcRenderer.invoke('set-full-screen', options),

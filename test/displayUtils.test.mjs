@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { DISPLAY_WINDOW_ID } from '../src/main/src/constants.js';
 import {
   selectDisplay,
+  validateDisplayPreferences,
   validateFullScreenOptions,
   validateOpenWindowOptions
 } from '../src/main/src/displayUtils.js';
@@ -32,4 +33,15 @@ test('selects requested, remembered, external, then primary display', () => {
   assert.equal(selectDisplay(displays, 9, 2).id, 2);
   assert.equal(selectDisplay(displays, 9, 8).id, 2);
   assert.equal(selectDisplay([displays[0]], null, null).id, 1);
+});
+test('validates cashier and customer display preferences', () => {
+  assert.deepEqual(validateDisplayPreferences({ cashierDisplayId: 1, customerDisplayId: null }), {
+    cashierDisplayId: '1',
+    customerDisplayId: null
+  });
+  assert.deepEqual(validateDisplayPreferences({ customerDisplayId: '2' }), {
+    customerDisplayId: '2'
+  });
+  assert.throws(() => validateDisplayPreferences(null));
+  assert.throws(() => validateDisplayPreferences({ cashierDisplayId: {} }));
 });
