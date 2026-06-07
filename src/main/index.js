@@ -1,10 +1,10 @@
-import { app, BrowserWindow, dialog, session } from 'electron';
+import { app, BrowserWindow, Menu, dialog, session } from 'electron';
 import { optimizer } from '@electron-toolkit/utils';
-import { autoUpdater } from 'electron-updater';
 import { join } from 'path';
 import MainWindow from './src/site';
 import AppTray from './src/tray';
 import Preferences from './src/preferences';
+import UpdaterManager from './src/updater';
 import { POS_SESSION_PARTITION } from './src/config';
 import { electronUserAgent } from './src/navigation';
 import packageJson from '../../package.json';
@@ -25,6 +25,7 @@ class ElectronApp {
     this.mainWindow = null;
     this.tray = null;
     this.preferences = null;
+    this.updater = new UpdaterManager(this);
   }
   configureAppSettings() {
     if (!app.requestSingleInstanceLock()) {
@@ -41,6 +42,7 @@ class ElectronApp {
     app.on('window-all-closed', () => {});
     app.setName(this.appName);
     app.setAppUserModelId(this.appId);
+    Menu.setApplicationMenu(null);
     if (app.isPackaged)
       app.setLoginItemSettings({
         openAtLogin: true,
@@ -64,43 +66,14 @@ class ElectronApp {
     );
   }
   configureUpdater() {
-    if (!app.isPackaged) return;
-    autoUpdater.setFeedURL({
-      provider: 'github',
-      owner: import.meta.env.MAIN_VITE_GITHUB_USERNAME,
-      repo: import.meta.env.MAIN_VITE_GITHUB_REPO,
-      releaseType: this.preview ? 'prerelease' : 'release'
-    });
-    autoUpdater.autoDownload = true;
-    autoUpdater.autoInstallOnAppQuit = false;
-    autoUpdater.on('error', (error) => console.error('AutoUpdater error:', error));
-    autoUpdater.on('update-downloaded', async (info) => {
-      this.mainWindow?.send('update-info', { status: 'downloaded', version: info.version });
-      const result = await dialog.showMessageBox(this.mainWindow, {
-        type: 'info',
-        title: 'Update ready',
-        message: 'Restaurant POS ' + info.version + ' is ready to install.',
-        detail: 'Install now? The POS will restart.',
-        buttons: ['Install and restart', 'Later'],
-        defaultId: 0,
-        cancelId: 1
-      });
-      if (result.response === 0) autoUpdater.quitAndInstall(false, true);
-    });
-    setTimeout(
-      () =>
-        autoUpdater
-          .checkForUpdates()
-          .catch((error) => console.error('Update check failed:', error)),
-      5000
-    );
+    this.updater.configure();
   }
   async createWindows() {
     this.preferences = new Preferences();
     await this.preferences.load();
     this.tray = new AppTray(this);
     this.tray.create();
-    this.mainWindow = new MainWindow(this, autoUpdater, this.preferences);
+    this.mainWindow = new MainWindow(this, this.updater, this.preferences);
     this.tray.setMainWindow(this.mainWindow);
     await this.mainWindow.load();
   }

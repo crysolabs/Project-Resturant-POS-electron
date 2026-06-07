@@ -4,6 +4,13 @@ export function normalizeDisplayId(value) {
   return value === undefined || value === null || value === '' ? null : String(value);
 }
 
+export function displayLabel(display, primaryDisplayId) {
+  const label = display.label || display.name;
+  if (label && String(label).trim()) return String(label).trim();
+  if (String(display.id) === String(primaryDisplayId)) return 'Primary cashier display';
+  return display.internal ? 'Built-in display' : 'External customer display';
+}
+
 export function selectDisplay(displays, requestedDisplayId, rememberedDisplayId) {
   const requested = normalizeDisplayId(requestedDisplayId);
   const remembered = normalizeDisplayId(rememberedDisplayId);

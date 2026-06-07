@@ -1,6 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-const allowedEvents = new Set(['display-loaded', 'display-closed']);
+const allowedEvents = new Set([
+  'display-loaded',
+  'display-closed',
+  'update-info',
+  'window-state-changed'
+]);
 const listeners = new Map();
 function addListener(eventName, callback) {
   if (!allowedEvents.has(eventName) || typeof callback !== 'function') return;
@@ -22,11 +27,18 @@ contextBridge.exposeInMainWorld(
     getDisplayPreferences: () => ipcRenderer.invoke('get-display-preferences'),
     setDisplayPreferences: (preferences = {}) =>
       ipcRenderer.invoke('set-display-preferences', preferences),
+    windowControl: (action) => ipcRenderer.invoke('window-control', { action }),
+    getWindowState: () => ipcRenderer.invoke('get-window-state'),
+    checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+    installUpdate: () => ipcRenderer.invoke('install-update'),
     openWindow: (options = {}) => ipcRenderer.invoke('open-window', options),
     focusWindow: (options = {}) => ipcRenderer.invoke('focus-window', options),
     setFullScreen: (options = {}) => ipcRenderer.invoke('set-full-screen', options),
+    closeWindow: (options = {}) => ipcRenderer.invoke('close-window', options),
     onDisplayLoaded: (callback) => addListener('display-loaded', callback),
     onDisplayClosed: (callback) => addListener('display-closed', callback),
+    onUpdateInfo: (callback) => addListener('update-info', callback),
+    onWindowStateChanged: (callback) => addListener('window-state-changed', callback),
     removeDisplayListener
   })
 );

@@ -42,6 +42,14 @@ export function isElectronRoute(url) {
     return false;
   }
 }
+export function isDisplayRoute(url) {
+  try {
+    const parsed = new URL(url, APP_ORIGIN);
+    return parsed.origin === APP_ORIGIN && parsed.pathname === DISPLAY_ROUTE;
+  } catch {
+    return false;
+  }
+}
 export function isBrowserOnlyRoute(url) {
   try {
     const parsed = new URL(url, APP_ORIGIN);

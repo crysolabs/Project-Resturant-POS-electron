@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DISPLAY_WINDOW_ID } from '../src/main/src/constants.js';
 import {
+  displayLabel,
   selectDisplay,
   validateDisplayPreferences,
   validateFullScreenOptions,
@@ -44,4 +45,9 @@ test('validates cashier and customer display preferences', () => {
   });
   assert.throws(() => validateDisplayPreferences(null));
   assert.throws(() => validateDisplayPreferences({ cashierDisplayId: {} }));
+});
+test('uses monitor labels before display fallback names', () => {
+  assert.equal(displayLabel({ id: 2, label: 'LG UltraWide', internal: false }, 1), 'LG UltraWide');
+  assert.equal(displayLabel({ id: 1, internal: true }, 1), 'Primary cashier display');
+  assert.equal(displayLabel({ id: 2, internal: false }, 1), 'External customer display');
 });

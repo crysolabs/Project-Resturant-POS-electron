@@ -1,6 +1,6 @@
 {
   "name": "resuturant-pos-system",
-  "version": "1.5.5",
+  "version": "1.5.6",
   "preview": false,
   "description": "Restaurant POS desktop shell",
   "main": "./out/main/index.js",
@@ -41,7 +41,13 @@
       "allowToChangeInstallationDirectory": true,
       "differentialPackage": true
     },
-    "publish": []
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "crysolabs",
+        "repo": "Project-Resturant-POS-electron"
+      }
+    ]
   },
   "scripts": {
     "format": "prettier --write .",

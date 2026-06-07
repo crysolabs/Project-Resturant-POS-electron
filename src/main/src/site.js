@@ -3,6 +3,7 @@ import { join } from 'path';
 import DisplayManager from './displayManager';
 import { DISPLAY_WINDOW_ID, POS_SESSION_PARTITION } from './config';
 import {
+  displayLabel,
   selectDisplay,
   validateDisplayPreferences,
   validateFullScreenOptions,
@@ -14,6 +15,7 @@ import {
   DEFAULT_ROUTE,
   appUrl,
   electronUserAgent,
+  isDisplayRoute,
   isBrowserOnlyRoute,
   isElectronRoute,
   isLogoutRoute,
@@ -22,6 +24,11 @@ import {
 import { attachRecovery } from './recovery';
 
 const IPC_CHANNELS = [
+  'window-control',
+  'get-window-state',
+  'close-window',
+  'check-for-updates',
+  'install-update',
   'focus-window',
   'set-full-screen',
   'get-display-info',
@@ -30,7 +37,7 @@ const IPC_CHANNELS = [
   'open-window'
 ];
 export default class MainWindow extends BrowserWindow {
-  constructor(main, autoUpdater, preferences) {
+  constructor(main, updater, preferences) {
     const primary = screen.getPrimaryDisplay();
     super({
       width: 1440,
@@ -41,6 +48,7 @@ export default class MainWindow extends BrowserWindow {
       y: primary.bounds.y,
       backgroundColor: '#f6f8fb',
       autoHideMenuBar: true,
+      frame: false,
       icon: main.appIconPath,
       title: main.appName,
       show: false,
@@ -53,7 +61,7 @@ export default class MainWindow extends BrowserWindow {
       }
     });
     this.main = main;
-    this.autoUpdater = autoUpdater;
+    this.updater = updater;
     this.preferences = preferences;
     this.activeWindows = new Map();
     this.targetUrl = appUrl(DEFAULT_ROUTE);
@@ -71,6 +79,10 @@ export default class MainWindow extends BrowserWindow {
   configureWindowEvents() {
     this.on('hide', () => this.activeWindows.forEach((window) => window.hide()));
     this.on('show', () => this.activeWindows.forEach((window) => window.show()));
+    this.on('maximize', () => this.send('window-state-changed', this.getWindowState()));
+    this.on('unmaximize', () => this.send('window-state-changed', this.getWindowState()));
+    this.on('enter-full-screen', () => this.send('window-state-changed', this.getWindowState()));
+    this.on('leave-full-screen', () => this.send('window-state-changed', this.getWindowState()));
     this.on('closed', () => this.cleanup());
   }
   configureNavigation() {
@@ -78,6 +90,9 @@ export default class MainWindow extends BrowserWindow {
       if (isLogoutRoute(url)) {
         event.preventDefault();
         this.logout();
+      } else if (isDisplayRoute(url)) {
+        event.preventDefault();
+        this.openCustomerDisplay({});
       } else if (!isElectronRoute(url)) {
         event.preventDefault();
         if (isBrowserOnlyRoute(url) || /^https?:/.test(url)) openInBrowser(url);
@@ -86,7 +101,9 @@ export default class MainWindow extends BrowserWindow {
       }
     });
     this.webContents.setWindowOpenHandler(({ url }) => {
-      if (isElectronRoute(url)) {
+      if (isDisplayRoute(url)) {
+        this.openCustomerDisplay({});
+      } else if (isElectronRoute(url)) {
         this.targetUrl = url;
         this.loadURL(url);
       } else if (isLogoutRoute(url)) this.logout();
@@ -114,44 +131,34 @@ export default class MainWindow extends BrowserWindow {
   registerIpc() {
     for (const channel of IPC_CHANNELS) ipcMain.removeHandler(channel);
     ipcMain.handle(
-      'open-window',
+      'window-control',
       this.ipcResult(null, async (raw = {}) => {
-        const options = validateOpenWindowOptions(raw);
-        const existing = this.activeWindows.get(DISPLAY_WINDOW_ID);
-        if (existing && !existing.isDestroyed()) {
-          existing.show();
-          existing.focus();
-          return {
-            success: true,
-            windowId: DISPLAY_WINDOW_ID,
-            displayId: existing.displayId,
-            status: 'focused'
-          };
-        }
-        const display = new DisplayManager(this, options);
-        this.activeWindows.set(DISPLAY_WINDOW_ID, display);
-        await this.preferences.set('customerDisplayId', display.displayId);
-        display.once('closed', () => {
-          this.activeWindows.delete(DISPLAY_WINDOW_ID);
-          this.send('display-closed', {
-            windowId: DISPLAY_WINDOW_ID,
-            displayId: display.displayId,
-            reason: 'closed'
-          });
-        });
-        await display.load();
-        this.send('display-loaded', {
-          windowId: DISPLAY_WINDOW_ID,
-          displayId: display.displayId,
-          status: 'created'
-        });
-        return {
-          success: true,
-          windowId: DISPLAY_WINDOW_ID,
-          displayId: display.displayId,
-          status: 'created'
-        };
+        const action = raw?.action;
+        if (action === 'minimize') this.minimize();
+        else if (action === 'maximize') this.isMaximized() ? this.unmaximize() : this.maximize();
+        else if (action === 'close') this.close();
+        else throw new Error('Unsupported window action');
+        return { success: true, state: this.getWindowState() };
       })
+    );
+    ipcMain.handle(
+      'get-window-state',
+      this.ipcResult(null, async () => ({ success: true, state: this.getWindowState() }))
+    );
+    ipcMain.handle(
+      'check-for-updates',
+      this.ipcResult(null, async () => ({
+        success: true,
+        update: await this.updater.checkForUpdates()
+      }))
+    );
+    ipcMain.handle(
+      'install-update',
+      this.ipcResult(null, async () => this.updater.installUpdate())
+    );
+    ipcMain.handle(
+      'open-window',
+      this.ipcResult(null, async (raw = {}) => this.openCustomerDisplay(raw))
     );
     ipcMain.handle(
       'focus-window',
@@ -183,6 +190,15 @@ export default class MainWindow extends BrowserWindow {
       })
     );
     ipcMain.handle(
+      'close-window',
+      this.ipcResult(null, async (raw) => {
+        validateWindowOptions(raw);
+        const display = this.requireDisplay();
+        display.close();
+        return { success: true, windowId: DISPLAY_WINDOW_ID };
+      })
+    );
+    ipcMain.handle(
       'get-display-info',
       this.ipcResult(null, async () => {
         const active = this.activeWindows.get(DISPLAY_WINDOW_ID);
@@ -193,6 +209,7 @@ export default class MainWindow extends BrowserWindow {
           preferences,
           displays: screen.getAllDisplays().map((display) => ({
             id: String(display.id),
+            label: displayLabel(display, primary.id),
             bounds: display.bounds,
             isInternal: display.internal,
             isPrimary: String(display.id) === String(primary.id),
@@ -225,6 +242,54 @@ export default class MainWindow extends BrowserWindow {
         return { success: true, preferences: this.getDisplayPreferences() };
       })
     );
+  }
+  getWindowState() {
+    return {
+      isMaximized: this.isMaximized(),
+      isMinimized: this.isMinimized(),
+      isFullScreen: this.isFullScreen()
+    };
+  }
+  checkUpdates() {
+    return this.updater.checkForUpdates();
+  }
+  async openCustomerDisplay(raw = {}) {
+    const options = validateOpenWindowOptions(raw);
+    const existing = this.activeWindows.get(DISPLAY_WINDOW_ID);
+    if (existing && !existing.isDestroyed()) {
+      existing.show();
+      existing.focus();
+      existing.setDisplayMode(options.fullscreen, options.kiosk);
+      return {
+        success: true,
+        windowId: DISPLAY_WINDOW_ID,
+        displayId: existing.displayId,
+        status: 'focused'
+      };
+    }
+    const display = new DisplayManager(this, options);
+    this.activeWindows.set(DISPLAY_WINDOW_ID, display);
+    await this.preferences.set('customerDisplayId', display.displayId);
+    display.once('closed', () => {
+      this.activeWindows.delete(DISPLAY_WINDOW_ID);
+      this.send('display-closed', {
+        windowId: DISPLAY_WINDOW_ID,
+        displayId: display.displayId,
+        reason: 'closed'
+      });
+    });
+    await display.load();
+    this.send('display-loaded', {
+      windowId: DISPLAY_WINDOW_ID,
+      displayId: display.displayId,
+      status: 'created'
+    });
+    return {
+      success: true,
+      windowId: DISPLAY_WINDOW_ID,
+      displayId: display.displayId,
+      status: 'created'
+    };
   }
   getDisplayPreferences() {
     return {
