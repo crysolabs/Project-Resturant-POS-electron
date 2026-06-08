@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, screen } from 'electron';
+import { BrowserWindow, app, ipcMain, screen, shell } from 'electron';
 import { join } from 'path';
 import DisplayManager from './displayManager';
 import { DISPLAY_WINDOW_ID, POS_SESSION_PARTITION } from './config';
@@ -27,8 +27,11 @@ const IPC_CHANNELS = [
   'window-control',
   'get-window-state',
   'close-window',
+  'get-app-info',
   'check-for-updates',
+  'download-update',
   'install-update',
+  'open-external',
   'focus-window',
   'set-full-screen',
   'get-display-info',
@@ -147,15 +150,45 @@ export default class MainWindow extends BrowserWindow {
       this.ipcResult(null, async () => ({ success: true, state: this.getWindowState() }))
     );
     ipcMain.handle(
+      'get-app-info',
+      this.ipcResult(null, async () => ({
+        success: true,
+        app: {
+          appName: app.getName(),
+          version: app.getVersion(),
+          isPackaged: app.isPackaged,
+          platform: process.platform
+        },
+        update: this.updater.lastInfo
+      }))
+    );
+    ipcMain.handle(
       'check-for-updates',
       this.ipcResult(null, async () => ({
         success: true,
-        update: await this.updater.checkForUpdates()
+        update: await this.updater.checkForUpdates({ manual: true })
+      }))
+    );
+    ipcMain.handle(
+      'download-update',
+      this.ipcResult(null, async () => ({
+        success: true,
+        update: await this.updater.downloadUpdate()
       }))
     );
     ipcMain.handle(
       'install-update',
       this.ipcResult(null, async () => this.updater.installUpdate())
+    );
+    ipcMain.handle(
+      'open-external',
+      this.ipcResult(null, async (url) => {
+        if (typeof url !== 'string' || !/^(https?:|mailto:)/i.test(url)) {
+          throw new Error('Unsupported external URL');
+        }
+        await shell.openExternal(url);
+        return { success: true };
+      })
     );
     ipcMain.handle(
       'open-window',

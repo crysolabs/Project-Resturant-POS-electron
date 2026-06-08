@@ -1,11 +1,19 @@
-import { app, dialog } from 'electron';
+import { app } from 'electron';
 import { autoUpdater } from 'electron-updater';
+
+const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
+const MANUAL_CHECK_THROTTLE_MS = 30 * 1000;
 
 export default class UpdaterManager {
   constructor(main) {
     this.main = main;
     this.readyToInstall = false;
-    this.lastInfo = { status: app.isPackaged ? 'idle' : 'disabled' };
+    this.checking = false;
+    this.downloading = false;
+    this.availableInfo = null;
+    this.lastCheckStartedAt = 0;
+    this.lastInfo = { status: app.isPackaged ? 'idle' : 'disabled', version: app.getVersion() };
+    this.interval = null;
   }
 
   configure() {
@@ -27,16 +35,23 @@ export default class UpdaterManager {
       repo,
       releaseType: this.main.preview ? 'prerelease' : 'release'
     });
-    autoUpdater.autoDownload = true;
+    autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = true;
 
-    autoUpdater.on('checking-for-update', () => this.broadcast({ status: 'checking' }));
-    autoUpdater.on('update-available', (info) =>
-      this.broadcast({ status: 'available', version: info.version })
-    );
-    autoUpdater.on('update-not-available', (info) =>
-      this.broadcast({ status: 'not-available', version: info.version || app.getVersion() })
-    );
+    autoUpdater.on('checking-for-update', () => {
+      this.checking = true;
+      this.broadcast({ status: 'checking', version: app.getVersion() });
+    });
+    autoUpdater.on('update-available', (info) => {
+      this.checking = false;
+      this.availableInfo = info;
+      this.broadcast({ status: 'available', version: info.version });
+    });
+    autoUpdater.on('update-not-available', (info) => {
+      this.checking = false;
+      this.availableInfo = null;
+      this.broadcast({ status: 'not-available', version: info.version || app.getVersion() });
+    });
     autoUpdater.on('download-progress', (info) =>
       this.broadcast({
         status: 'downloading',
@@ -46,27 +61,22 @@ export default class UpdaterManager {
         bytesPerSecond: info.bytesPerSecond
       })
     );
-    autoUpdater.on('update-downloaded', async (info) => {
+    autoUpdater.on('update-downloaded', (info) => {
       this.readyToInstall = true;
+      this.downloading = false;
       this.broadcast({ status: 'downloaded', version: info.version });
-      const window = this.main.mainWindow;
-      if (!window || window.isDestroyed()) return;
-      const result = await dialog.showMessageBox(window, {
-        type: 'info',
-        title: 'Update ready',
-        message: 'Restaurant POS ' + info.version + ' is ready to install.',
-        detail: 'Install now? The POS will restart.',
-        buttons: ['Install and restart', 'Later'],
-        defaultId: 0,
-        cancelId: 1
-      });
-      if (result.response === 0) this.installUpdate();
     });
-    autoUpdater.on('error', (error) =>
-      this.broadcast({ status: 'error', error: error?.message || String(error) })
-    );
+    autoUpdater.on('error', (error) => {
+      this.checking = false;
+      this.downloading = false;
+      this.broadcast({ status: 'error', error: error?.message || String(error) });
+    });
 
-    setTimeout(() => this.checkForUpdates().catch(() => undefined), 5000);
+    setTimeout(() => this.checkForUpdates({ manual: false }).catch(() => undefined), 5000);
+    this.interval = setInterval(
+      () => this.checkForUpdates({ manual: false }).catch(() => undefined),
+      UPDATE_CHECK_INTERVAL_MS
+    );
   }
 
   broadcast(info) {
@@ -74,12 +84,33 @@ export default class UpdaterManager {
     this.main.mainWindow?.send('update-info', this.lastInfo);
   }
 
-  async checkForUpdates() {
+  async checkForUpdates({ manual = false } = {}) {
     if (!app.isPackaged) {
       this.broadcast({ status: 'disabled', reason: 'dev-mode' });
       return this.lastInfo;
     }
+    if (this.readyToInstall) return this.lastInfo;
+    if (this.checking || this.downloading) return this.lastInfo;
+    const now = Date.now();
+    if (manual && now - this.lastCheckStartedAt < MANUAL_CHECK_THROTTLE_MS) return this.lastInfo;
+    this.lastCheckStartedAt = now;
     await autoUpdater.checkForUpdates();
+    return this.lastInfo;
+  }
+
+  async downloadUpdate() {
+    if (!app.isPackaged) {
+      this.broadcast({ status: 'disabled', reason: 'dev-mode' });
+      return this.lastInfo;
+    }
+    if (this.readyToInstall || this.downloading) return this.lastInfo;
+    if (!this.availableInfo) {
+      await this.checkForUpdates({ manual: true });
+      if (!this.availableInfo) return this.lastInfo;
+    }
+    this.downloading = true;
+    this.broadcast({ status: 'downloading', version: this.availableInfo.version, percent: 0 });
+    await autoUpdater.downloadUpdate();
     return this.lastInfo;
   }
 

@@ -1,6 +1,6 @@
 {
   "name": "resuturant-pos-system",
-  "version": "1.5.7",
+  "version": "1.5.8",
   "preview": false,
   "description": "Restaurant POS desktop shell",
   "main": "./out/main/index.js",
@@ -38,6 +38,7 @@
       "uninstallDisplayName": "${productName} Uninstaller",
       "createDesktopShortcut": "always",
       "oneClick": false,
+      "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "differentialPackage": true
     },
