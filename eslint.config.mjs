@@ -4,7 +4,7 @@ import react from 'eslint-plugin-react';
 
 export default [
   {
-    ignores: ['node_modules/**', 'dist/**', 'out/**']
+    ignores: ['node_modules/**', 'dist/**', 'out/**', 'installer/out/**', 'dist-installer/**']
   },
   electronToolkit,
   react.configs.flat.recommended,

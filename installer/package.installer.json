@@ -1,0 +1,21 @@
+{
+  "main": "installer/out/main/main.js",
+  "scripts": {
+    "dev": "electron-vite dev --config installer/electron.vite.installer.config.mjs",
+    "build": "electron-vite build --config installer/electron.vite.installer.config.mjs",
+    "package:win": "electron-builder --config installer/electron-builder.installer.yml --win"
+  },
+  "dependencies": {
+    "@electron-toolkit/preload": "^3.0.2",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.2",
+    "electron": "^42.3.3",
+    "electron-builder": "^26.8.1",
+    "electron-vite": "^5.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^7.3.0"
+  }
+}

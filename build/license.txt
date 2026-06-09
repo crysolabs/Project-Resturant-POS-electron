@@ -1,0 +1,7 @@
+Restaurant POS System Setup
+
+This installer will set up the Restaurant POS desktop application, create Start Menu and Desktop shortcuts, and keep the app data needed for local operation and updates.
+
+Before installing, close any running copy of Restaurant POS System. Only install builds you received from CrysoLabs or an approved internal release channel.
+
+Copyright (c) CrysoLabs. All rights reserved.

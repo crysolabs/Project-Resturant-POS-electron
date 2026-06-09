@@ -1,11 +1,11 @@
 {
   "name": "resuturant-pos-system",
-  "version": "1.5.8",
+  "version": "1.5.9",
   "preview": false,
-  "description": "Restaurant POS desktop shell",
+  "description": "Guided Restaurant POS desktop installer and update shell",
   "main": "./out/main/index.js",
   "author": "achiraGaming",
-  "homepage": "https://www.electronjs.org",
+  "homepage": "https://resutrant-pos.crysolabs.com",
   "build": {
     "appId": "com.achiraGaming.resuturant-pos-system",
     "productName": "Restaurant POS System",
@@ -34,13 +34,22 @@
       "installerIcon": "build/windows/icons/icon.ico",
       "uninstallerIcon": "build/windows/icons/icon.ico",
       "installerHeaderIcon": "build/windows/icons/icon.ico",
-      "artifactName": "${name}-${version}-setup.${ext}",
+      "artifactName": "Restaurant-POS-System-${version}-${arch}-setup.${ext}",
       "uninstallDisplayName": "${productName} Uninstaller",
       "createDesktopShortcut": "always",
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "differentialPackage": true
+      "differentialPackage": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Restaurant POS System",
+      "menuCategory": "CrysoLabs",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/uninstallerSidebar.bmp",
+      "installerHeader": "build/installerHeader.bmp",
+      "license": "build/license.txt",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
     },
     "publish": [
       {
@@ -48,7 +57,37 @@
         "owner": "crysolabs",
         "repo": "Project-Resturant-POS-electron"
       }
-    ]
+    ],
+    "mac": {
+      "icon": "build/mac/icons/icon.icns",
+      "category": "public.app-category.business",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/mac/entitlements.mac.plist",
+      "entitlementsInherit": "build/mac/entitlements.mac.plist",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "dmg": {
+      "title": "${productName} ${version}",
+      "icon": "build/mac/icons/icon.icns",
+      "background": "build/assets/restaurant-interior-placeholder.jpg",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "forceCodeSigning": false
   },
   "scripts": {
     "format": "prettier --write .",
@@ -62,7 +101,11 @@
     "build:win": "npm run build && electron-builder --win ",
     "build:mac": "npm run build && electron-builder --mac",
     "build:linux": "npm run build && electron-builder --linux ",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "installer:build": "electron-vite build --config installer/electron.vite.installer.config.mjs && npm run installer:prepare-runtime",
+    "installer:package:win": "npm run installer:prepare-runtime && electron-builder --config installer/electron-builder.installer.yml --win",
+    "installer:win": "npm run build:win && npm run installer:build && npm run installer:package:win",
+    "installer:prepare-runtime": "node -e \"const fs=require('fs');fs.mkdirSync('installer/out', {recursive:true});fs.copyFileSync('installer/runtime-package.json', 'installer/out/package.json')\""
   },
   "dependencies": {
     "@ant-design/icons": "^5.2.6",

@@ -4,9 +4,10 @@ import { join } from 'path';
 const loaderWindow = class extends BrowserWindow {
   constructor(main, autoUpdater) {
     super({
-      height: 500,
-      width: 400,
+      height: 620,
+      width: 980,
       resizable: false,
+      backgroundColor: '#f6f8fb',
       autoHideMenuBar: true,
       show: false,
       titleBarStyle: 'hidden',

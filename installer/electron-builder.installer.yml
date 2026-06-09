@@ -1,0 +1,27 @@
+appId: com.achiraGaming.resuturant-pos-system.installer
+productName: Restaurant POS System Setup
+directories:
+  output: dist-installer
+  buildResources: installer/assets
+extraMetadata:
+  main: main/index.js
+files:
+  - from: installer/out
+    to: .
+extraResources:
+  - from: dist/Restaurant-POS-System-1.5.8-x64-setup.exe
+    to: payload/Restaurant-POS-System-payload.exe
+win:
+  target: nsis
+  icon: installer/assets/icon.ico
+nsis:
+  oneClick: true
+  perMachine: false
+  allowElevation: true
+  artifactName: Restaurant-POS-System-modern-setup-${version}-${arch}.${ext}
+  deleteAppDataOnUninstall: false
+  createDesktopShortcut: false
+  createStartMenuShortcut: false
+  runAfterFinish: true
+  include: installer/nsis/bootstrapper.nsh
+publish: null

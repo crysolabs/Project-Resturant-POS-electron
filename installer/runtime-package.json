@@ -1,0 +1,7 @@
+{
+  "name": "restaurant-pos-modern-installer",
+  "version": "1.5.8",
+  "description": "Modern installer bootstrapper for Restaurant POS System",
+  "main": "main/index.js",
+  "author": "CrysoLabs"
+}

@@ -1,0 +1,57 @@
+﻿:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --radius: 0.625rem;
+  --brand: #226cae;
+  --brand-foreground: #ffffff;
+  --brand-dark: #1a5489;
+  --brand-tint: #eef4fa;
+  --brand-line: rgba(34, 108, 174, 0.16);
+  --surface: #f6f8fb;
+  --ink: #14233a;
+  --ink-soft: #475569;
+  --ink-muted: #6b7c93;
+  --hairline: rgba(20, 35, 58, 0.1);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: #151a22;
+    --card-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --border: oklch(0.269 0 0);
+    --ring: oklch(0.439 0 0);
+    --surface: #0f141b;
+    --ink: #f8fafc;
+    --ink-soft: #cbd5e1;
+    --ink-muted: #94a3b8;
+    --hairline: rgba(255, 255, 255, 0.12);
+    --brand-tint: rgba(34, 108, 174, 0.18);
+    color-scheme: dark;
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --brand: Highlight;
+    --brand-tint: Canvas;
+    --hairline: ButtonBorder;
+  }
+}
