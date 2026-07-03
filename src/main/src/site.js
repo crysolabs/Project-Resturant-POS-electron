@@ -117,6 +117,10 @@ export default class MainWindow extends BrowserWindow {
       { urls: [APP_ORIGIN + '/logout*', APP_ORIGIN + '/sign-out*', APP_ORIGIN + '/signout*'] },
       () => this.logout()
     );
+    this.webContents.session.on('will-download', (event) => {
+      event.preventDefault();
+      this.send('download-blocked', { reason: 'Downloads are disabled in the POS shell' });
+    });
   }
   isTrustedSender(event) {
     return event.sender === this.webContents && !event.sender.isDestroyed();

@@ -5,6 +5,7 @@ export const APP_ORIGIN = getAppBaseUrl();
 export const ELECTRON_USER_AGENT_TOKEN = 'CRYSO-Electron Electron';
 export const DEFAULT_ROUTE = '/login';
 export const DISPLAY_ROUTE = '/pos/display';
+const allowedExternalProtocols = new Set(['https:', 'mailto:']);
 const electronRoutes = new Set([
   '/login',
   '/forgot-password',
@@ -72,5 +73,10 @@ export function isLogoutRoute(url) {
   }
 }
 export async function openInBrowser(url) {
-  if (/^https?:\/\//.test(url)) await shell.openExternal(url);
+  try {
+    const parsed = new URL(url);
+    if (allowedExternalProtocols.has(parsed.protocol)) await shell.openExternal(url);
+  } catch {
+    return;
+  }
 }

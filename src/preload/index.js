@@ -4,7 +4,8 @@ const allowedEvents = new Set([
   'display-loaded',
   'display-closed',
   'update-info',
-  'window-state-changed'
+  'window-state-changed',
+  'download-blocked'
 ]);
 const listeners = new Map();
 function addListener(eventName, callback) {
