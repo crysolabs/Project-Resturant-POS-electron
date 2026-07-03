@@ -43,6 +43,7 @@ contextBridge.exposeInMainWorld(
     onDisplayClosed: (callback) => addListener('display-closed', callback),
     onUpdateInfo: (callback) => addListener('update-info', callback),
     onWindowStateChanged: (callback) => addListener('window-state-changed', callback),
+    onDownloadBlocked: (callback) => addListener('download-blocked', callback),
     removeDisplayListener
   })
 );
