@@ -102,6 +102,7 @@
     "build:mac": "npm run build && electron-builder --mac",
     "build:linux": "npm run build && electron-builder --linux ",
     "test": "node --test test/*.test.mjs",
+    "test:ci": "npm run lint && npm test && npm run build",
     "installer:build": "electron-vite build --config installer/electron.vite.installer.config.mjs && npm run installer:prepare-runtime",
     "installer:package:win": "npm run installer:prepare-runtime && electron-builder --config installer/electron-builder.installer.yml --win",
     "installer:win": "npm run build:win && npm run installer:build && npm run installer:package:win",
