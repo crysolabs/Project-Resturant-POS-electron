@@ -11,6 +11,7 @@ import {
   openInBrowser
 } from './navigation';
 import { attachRecovery } from './recovery';
+import { logDesktopEvent } from './diagnostics.js';
 
 export default class DisplayManager extends BrowserWindow {
   constructor(site, options) {
@@ -19,7 +20,12 @@ export default class DisplayManager extends BrowserWindow {
       options.displayId,
       site.preferences.get('customerDisplayId')
     );
-    if (!target) throw new Error('No connected display is available');
+    if (!target) {
+      logDesktopEvent('error', 'desktop.display.unavailable', {
+        requestedDisplayId: options.displayId
+      });
+      throw new Error('No connected display is available');
+    }
     super({
       width: target.bounds.width,
       height: target.bounds.height,
@@ -63,7 +69,12 @@ export default class DisplayManager extends BrowserWindow {
   async load() {
     try {
       await this.loadURL(this.targetUrl);
-    } catch {
+    } catch (error) {
+      logDesktopEvent('warn', 'desktop.display.load_failed', {
+        windowId: this.windowId,
+        displayId: this.displayId,
+        error
+      });
       /* recovery handler owns retry */
     }
     this.show();

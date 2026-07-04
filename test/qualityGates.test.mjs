@@ -36,6 +36,7 @@ test('preload exposes only the documented Electron API surface', () => {
     'getDisplayInfo',
     'setDisplayPreferences',
     'windowControl',
+    'getDiagnostics',
     'checkForUpdates',
     'openExternal',
     'openWindow',
@@ -46,6 +47,27 @@ test('preload exposes only the documented Electron API surface', () => {
   }
   assert.match(preload, /Object\.freeze/);
   assert.match(preload, /allowedEvents/);
+});
+
+test('desktop diagnostics redact sensitive data and capture safe support context', () => {
+  const diagnostics = read('src/main/src/diagnostics.js');
+  const site = read('src/main/src/site.js');
+  const recovery = read('src/main/src/recovery.js');
+  const updater = read('src/main/src/updater.js');
+  for (const token of [
+    'redact',
+    'logDesktopEvent',
+    'safeDesktopDiagnostics',
+    'appVersion',
+    'appOrigin',
+    'displays'
+  ]) {
+    assert.match(diagnostics, new RegExp(token));
+  }
+  assert.match(diagnostics, /token\|password\|secret\|authorization/);
+  assert.match(site, /get-diagnostics/);
+  assert.match(recovery, /desktop\.load\.failed/);
+  assert.match(updater, /desktop\.updater\.error/);
 });
 
 test('desktop navigation and IPC stay allowlisted for hosted POS routes and trusted senders', () => {

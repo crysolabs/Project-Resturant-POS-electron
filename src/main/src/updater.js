@@ -1,5 +1,6 @@
 import { app } from 'electron';
 import { autoUpdater } from 'electron-updater';
+import { logDesktopEvent } from './diagnostics.js';
 
 const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
 const MANUAL_CHECK_THROTTLE_MS = 30 * 1000;
@@ -18,6 +19,7 @@ export default class UpdaterManager {
 
   configure() {
     if (!app.isPackaged) {
+      logDesktopEvent('info', 'desktop.updater.disabled', { reason: 'dev-mode' });
       this.broadcast({ status: 'disabled', reason: 'dev-mode' });
       return;
     }
@@ -25,6 +27,7 @@ export default class UpdaterManager {
     const owner = import.meta.env.MAIN_VITE_GITHUB_USERNAME;
     const repo = import.meta.env.MAIN_VITE_GITHUB_REPO;
     if (!owner || !repo) {
+      logDesktopEvent('warn', 'desktop.updater.disabled', { reason: 'missing-github-feed' });
       this.broadcast({ status: 'disabled', reason: 'missing-github-feed' });
       return;
     }
@@ -40,16 +43,21 @@ export default class UpdaterManager {
 
     autoUpdater.on('checking-for-update', () => {
       this.checking = true;
+      logDesktopEvent('info', 'desktop.updater.checking', {});
       this.broadcast({ status: 'checking', version: app.getVersion() });
     });
     autoUpdater.on('update-available', (info) => {
       this.checking = false;
       this.availableInfo = info;
+      logDesktopEvent('info', 'desktop.updater.available', { version: info.version });
       this.broadcast({ status: 'available', version: info.version });
     });
     autoUpdater.on('update-not-available', (info) => {
       this.checking = false;
       this.availableInfo = null;
+      logDesktopEvent('info', 'desktop.updater.not_available', {
+        version: info.version || app.getVersion()
+      });
       this.broadcast({ status: 'not-available', version: info.version || app.getVersion() });
     });
     autoUpdater.on('download-progress', (info) =>
@@ -69,6 +77,7 @@ export default class UpdaterManager {
     autoUpdater.on('error', (error) => {
       this.checking = false;
       this.downloading = false;
+      logDesktopEvent('error', 'desktop.updater.error', { error });
       this.broadcast({ status: 'error', error: error?.message || String(error) });
     });
 

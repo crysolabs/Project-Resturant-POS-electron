@@ -1,4 +1,5 @@
 import { join } from 'path';
+import { logDesktopEvent } from './diagnostics.js';
 
 export const RETRY_DELAYS = [1000, 2000, 5000, 10000, 30000];
 export function reconnectDelay(attempt, delays = RETRY_DELAYS) {
@@ -18,13 +19,14 @@ export function attachRecovery(window, getTargetUrl, options = {}) {
     if (window.isDestroyed()) return;
     clearRetry();
     const delay = reconnectDelay(attempt++);
+    logDesktopEvent('warn', 'desktop.load.retry', { reason, retryInMs: delay, attempt });
     if (!hasLoadedApp || showOfflineAfterFirstLoad) {
       try {
         await window.loadFile(join(__dirname, '../renderer/offline/index.html'), {
           query: { reason, retryIn: String(Math.ceil(delay / 1000)) }
         });
       } catch (error) {
-        console.error('Failed to show offline screen:', error);
+        logDesktopEvent('error', 'desktop.load.offline_screen_failed', { error });
       }
     }
     retryTimer = setTimeout(async () => {
@@ -40,18 +42,33 @@ export function attachRecovery(window, getTargetUrl, options = {}) {
     'did-fail-load',
     (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
       if (isMainFrame && /^https?:/.test(validatedURL))
+        logDesktopEvent('warn', 'desktop.load.failed', {
+          errorCode,
+          errorDescription,
+          origin: new URL(validatedURL).origin
+        });
+      if (isMainFrame && /^https?:/.test(validatedURL))
         retry(errorDescription || String(errorCode));
     }
   );
   window.webContents.on('did-finish-load', () => {
     if (/^https?:/.test(window.webContents.getURL())) {
+      logDesktopEvent('info', 'desktop.load.finished', {
+        origin: new URL(window.webContents.getURL()).origin
+      });
       hasLoadedApp = true;
       attempt = 0;
       clearRetry();
     }
   });
-  window.on('unresponsive', () => retry('window-unresponsive'));
-  window.webContents.on('render-process-gone', (_event, details) => retry(details.reason));
+  window.on('unresponsive', () => {
+    logDesktopEvent('error', 'desktop.window.unresponsive', {});
+    retry('window-unresponsive');
+  });
+  window.webContents.on('render-process-gone', (_event, details) => {
+    logDesktopEvent('error', 'desktop.renderer.gone', { reason: details.reason });
+    retry(details.reason);
+  });
   window.on('closed', clearRetry);
   return { retry };
 }

@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld(
     windowControl: (action) => ipcRenderer.invoke('window-control', { action }),
     getWindowState: () => ipcRenderer.invoke('get-window-state'),
     getAppInfo: () => ipcRenderer.invoke('get-app-info'),
+    getDiagnostics: () => ipcRenderer.invoke('get-diagnostics'),
     checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
     downloadUpdate: () => ipcRenderer.invoke('download-update'),
     installUpdate: () => ipcRenderer.invoke('install-update'),

@@ -7,6 +7,7 @@ import Preferences from './src/preferences';
 import UpdaterManager from './src/updater';
 import { POS_SESSION_PARTITION } from './src/config';
 import { electronUserAgent } from './src/navigation';
+import { logDesktopEvent } from './src/diagnostics.js';
 import packageJson from '../../package.json';
 
 class ElectronApp {
@@ -80,6 +81,10 @@ class ElectronApp {
   async initialize() {
     app.on('browser-window-created', (_, window) => optimizer.watchWindowShortcuts(window));
     await this.createWindows();
+    logDesktopEvent('info', 'desktop.launch.ready', {
+      preview: this.preview,
+      devMode: this.devMode
+    });
     app.on('activate', async () => {
       if (BrowserWindow.getAllWindows().length === 0) await this.createWindows();
       else this.mainWindow?.show();
@@ -96,7 +101,7 @@ async function launchApp() {
   try {
     await instance.initialize();
   } catch (error) {
-    console.error('Application startup failed:', error);
+    logDesktopEvent('fatal', 'desktop.launch.failed', { error });
     dialog.showErrorBox('Application Error', 'Failed to start: ' + error.message);
     app.quit();
   }

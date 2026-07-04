@@ -15,6 +15,7 @@ export type ElectronApiV1 = {
   windowControl(action: WindowAction): Promise<IpcResult>;
   getWindowState(): Promise<IpcResult<{ state: { isMaximized: boolean; isMinimized: boolean; isFullScreen: boolean } }>>;
   getAppInfo(): Promise<IpcResult>;
+  getDiagnostics(): Promise<IpcResult<{ diagnostics: Record<string, unknown> }>>;
   checkForUpdates(): Promise<IpcResult>;
   downloadUpdate(): Promise<IpcResult>;
   installUpdate(): Promise<IpcResult>;

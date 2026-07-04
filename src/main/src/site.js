@@ -22,6 +22,7 @@ import {
   openInBrowser
 } from './navigation';
 import { attachRecovery } from './recovery';
+import { logDesktopEvent, safeDesktopDiagnostics } from './diagnostics.js';
 
 const IPC_CHANNELS = [
   'window-control',
@@ -37,6 +38,7 @@ const IPC_CHANNELS = [
   'get-display-info',
   'get-display-preferences',
   'set-display-preferences',
+  'get-diagnostics',
   'open-window'
 ];
 export default class MainWindow extends BrowserWindow {
@@ -136,6 +138,9 @@ export default class MainWindow extends BrowserWindow {
     this.webContents.session.on('will-download', (event) => {
       event.preventDefault();
       this.send('download-blocked', { reason: 'Downloads are disabled in the POS shell' });
+      logDesktopEvent('warn', 'desktop.download.blocked', {
+        reason: 'Downloads are disabled in the POS shell'
+      });
     });
   }
   isTrustedSender(event) {
@@ -147,6 +152,7 @@ export default class MainWindow extends BrowserWindow {
       try {
         return await handler(options);
       } catch (error) {
+        logDesktopEvent('error', 'desktop.ipc.failure', { channel: event, error });
         return { success: false, error: error.message };
       }
     };
@@ -180,6 +186,23 @@ export default class MainWindow extends BrowserWindow {
           platform: process.platform
         },
         update: this.updater.lastInfo
+      }))
+    );
+    ipcMain.handle(
+      'get-diagnostics',
+      this.ipcResult(null, async () => ({
+        success: true,
+        diagnostics: safeDesktopDiagnostics({
+          appOrigin: APP_ORIGIN,
+          updateState: this.updater.lastInfo,
+          activeWindows: [...this.activeWindows.values()]
+            .filter((window) => !window.isDestroyed())
+            .map((window) => ({
+              id: window.windowId,
+              displayId: window.displayId,
+              bounds: window.getBounds()
+            }))
+        })
       }))
     );
     ipcMain.handle(
@@ -333,6 +356,10 @@ export default class MainWindow extends BrowserWindow {
       });
     });
     await display.load();
+    logDesktopEvent('info', 'desktop.display.opened', {
+      windowId: DISPLAY_WINDOW_ID,
+      displayId: display.displayId
+    });
     this.send('display-loaded', {
       windowId: DISPLAY_WINDOW_ID,
       displayId: display.displayId,
