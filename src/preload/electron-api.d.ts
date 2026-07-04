@@ -8,6 +8,29 @@ export type DisplayPreferences = {
 export type WindowAction = "minimize" | "maximize" | "fullscreen" | "close";
 export type DesktopEvent = "display-loaded" | "display-closed" | "update-info" | "window-state-changed" | "download-blocked" | "access-state-changed";
 
+export type HardwareCapabilities = {
+  receiptPrinter: boolean;
+  kitchenPrinter: boolean;
+  cashDrawer: boolean;
+  barcodeScanner: "keyboard-wedge" | "native" | "none";
+  customerDisplay: boolean;
+  paymentTerminal: boolean;
+  weighingScale: boolean;
+  labelPrinter: boolean;
+};
+
+export type StationSettings = {
+  stationKey: string;
+  stationName: string;
+  receiptPrinterName: string | null;
+  kitchenPrinterName: string | null;
+  cashDrawerPrinterName: string | null;
+  defaultPaper: "58mm" | "80mm";
+  autoPrintReceipt: boolean;
+  autoPrintKitchenTicket: boolean;
+  kitchenRoutes: Record<string, string>;
+};
+
 export type ElectronApiV1 = {
   getDisplayInfo(): Promise<IpcResult>;
   getDisplayPreferences(): Promise<IpcResult<{ preferences: DisplayPreferences }>>;
@@ -24,6 +47,15 @@ export type ElectronApiV1 = {
   focusWindow(options?: Record<string, unknown>): Promise<IpcResult>;
   setFullScreen(options?: { fullscreen?: boolean }): Promise<IpcResult>;
   closeWindow(options?: Record<string, unknown>): Promise<IpcResult>;
+  getHardwareCapabilities(): Promise<IpcResult<{ capabilities: HardwareCapabilities }>>;
+  listPrinters(): Promise<IpcResult<{ printers: Array<{ name: string; displayName: string; status?: number; isDefault: boolean }> }>>;
+  getStationSettings(): Promise<IpcResult<{ settings: StationSettings }>>;
+  setStationSettings(settings: Partial<StationSettings>): Promise<IpcResult<{ settings: StationSettings }>>;
+  previewReceipt(payload?: Record<string, unknown>): Promise<IpcResult<{ preview: { html: string } }>>;
+  printReceipt(payload?: Record<string, unknown>): Promise<IpcResult<{ job: Record<string, unknown> }>>;
+  testPrint(payload?: Record<string, unknown>): Promise<IpcResult<{ job: Record<string, unknown> }>>;
+  openCashDrawer(payload?: Record<string, unknown>): Promise<IpcResult<{ job: Record<string, unknown> }>>;
+  getPrintHistory(): Promise<IpcResult<{ history: Array<Record<string, unknown>> }>>;
   onDisplayLoaded(callback: (payload: unknown) => void): void;
   onDisplayClosed(callback: (payload: unknown) => void): void;
   onUpdateInfo(callback: (payload: unknown) => void): void;

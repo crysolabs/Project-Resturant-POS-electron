@@ -23,6 +23,7 @@ import {
 } from './navigation';
 import { attachRecovery } from './recovery';
 import { logDesktopEvent, safeDesktopDiagnostics } from './diagnostics.js';
+import HardwareManager from './hardware.js';
 
 const IPC_CHANNELS = [
   'window-control',
@@ -38,6 +39,15 @@ const IPC_CHANNELS = [
   'get-display-info',
   'get-display-preferences',
   'set-display-preferences',
+  'hardware-get-capabilities',
+  'hardware-list-printers',
+  'hardware-get-settings',
+  'hardware-set-settings',
+  'hardware-preview-receipt',
+  'hardware-print-receipt',
+  'hardware-test-print',
+  'hardware-open-cash-drawer',
+  'hardware-get-print-history',
   'get-diagnostics',
   'open-window'
 ];
@@ -68,6 +78,7 @@ export default class MainWindow extends BrowserWindow {
     this.main = main;
     this.updater = updater;
     this.preferences = preferences;
+    this.hardware = new HardwareManager(this, preferences);
     this.activeWindows = new Map();
     this.targetUrl = appUrl(DEFAULT_ROUTE);
     this.screenHandlers = [];
@@ -144,16 +155,26 @@ export default class MainWindow extends BrowserWindow {
     });
   }
   isTrustedSender(event) {
-    return event.sender === this.webContents && !event.sender.isDestroyed();
+    if (event.sender !== this.webContents || event.sender.isDestroyed()) return false;
+    try {
+      const url = new URL(event.senderFrame?.url || this.webContents.getURL());
+      return url.origin === APP_ORIGIN;
+    } catch {
+      return false;
+    }
   }
   ipcResult(event, handler) {
     return async (_event, options) => {
       if (!this.isTrustedSender(_event)) return { success: false, error: 'Untrusted IPC sender' };
       try {
-        return await handler(options);
+        const result = await Promise.race([
+          handler(options),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('IPC timed out')), 35000))
+        ]);
+        return result;
       } catch (error) {
         logDesktopEvent('error', 'desktop.ipc.failure', { channel: event, error });
-        return { success: false, error: error.message };
+        return { success: false, error: error.message, code: 'IPC_FAILURE' };
       }
     };
   }
@@ -300,6 +321,69 @@ export default class MainWindow extends BrowserWindow {
               : []
         };
       })
+    );
+    ipcMain.handle(
+      'hardware-get-capabilities',
+      this.ipcResult('hardware-get-capabilities', async () => ({
+        success: true,
+        capabilities: this.hardware.capabilities()
+      }))
+    );
+    ipcMain.handle(
+      'hardware-list-printers',
+      this.ipcResult('hardware-list-printers', async () => ({
+        success: true,
+        printers: await this.hardware.printers()
+      }))
+    );
+    ipcMain.handle(
+      'hardware-get-settings',
+      this.ipcResult('hardware-get-settings', async () => ({
+        success: true,
+        settings: this.hardware.settings()
+      }))
+    );
+    ipcMain.handle(
+      'hardware-set-settings',
+      this.ipcResult('hardware-set-settings', async (raw = {}) => ({
+        success: true,
+        settings: await this.hardware.setSettings(raw)
+      }))
+    );
+    ipcMain.handle(
+      'hardware-preview-receipt',
+      this.ipcResult('hardware-preview-receipt', async (raw = {}) => ({
+        success: true,
+        preview: await this.hardware.previewReceipt(raw)
+      }))
+    );
+    ipcMain.handle(
+      'hardware-print-receipt',
+      this.ipcResult('hardware-print-receipt', async (raw = {}) => ({
+        success: true,
+        job: await this.hardware.printReceipt(raw)
+      }))
+    );
+    ipcMain.handle(
+      'hardware-test-print',
+      this.ipcResult('hardware-test-print', async (raw = {}) => ({
+        success: true,
+        job: await this.hardware.testPrint(raw)
+      }))
+    );
+    ipcMain.handle(
+      'hardware-open-cash-drawer',
+      this.ipcResult('hardware-open-cash-drawer', async (raw = {}) => ({
+        success: true,
+        job: await this.hardware.openCashDrawer(raw)
+      }))
+    );
+    ipcMain.handle(
+      'hardware-get-print-history',
+      this.ipcResult('hardware-get-print-history', async () => ({
+        success: true,
+        history: this.hardware.getHistory()
+      }))
     );
     ipcMain.handle(
       'get-display-preferences',
