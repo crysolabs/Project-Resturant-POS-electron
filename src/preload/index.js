@@ -5,7 +5,8 @@ const allowedEvents = new Set([
   'display-closed',
   'update-info',
   'window-state-changed',
-  'download-blocked'
+  'download-blocked',
+  'access-state-changed'
 ]);
 const listeners = new Map();
 function addListener(eventName, callback) {
@@ -44,6 +45,7 @@ contextBridge.exposeInMainWorld(
     onUpdateInfo: (callback) => addListener('update-info', callback),
     onWindowStateChanged: (callback) => addListener('window-state-changed', callback),
     onDownloadBlocked: (callback) => addListener('download-blocked', callback),
+    onAccessStateChanged: (callback) => addListener('access-state-changed', callback),
     removeDisplayListener
   })
 );

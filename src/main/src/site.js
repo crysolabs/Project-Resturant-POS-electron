@@ -117,6 +117,22 @@ export default class MainWindow extends BrowserWindow {
       { urls: [APP_ORIGIN + '/logout*', APP_ORIGIN + '/sign-out*', APP_ORIGIN + '/signout*'] },
       () => this.logout()
     );
+    this.webContents.session.webRequest.onCompleted(
+      { urls: [APP_ORIGIN + '/api/*'] },
+      (details) => {
+        if ([401, 402, 403].includes(details.statusCode)) {
+          this.send('access-state-changed', {
+            statusCode: details.statusCode,
+            reason:
+              details.statusCode === 401
+                ? 'expired-or-revoked-session'
+                : details.statusCode === 402
+                  ? 'restricted-plan-or-suspended-tenant'
+                  : 'restricted-capability'
+          });
+        }
+      }
+    );
     this.webContents.session.on('will-download', (event) => {
       event.preventDefault();
       this.send('download-blocked', { reason: 'Downloads are disabled in the POS shell' });

@@ -6,7 +6,7 @@ export type DisplayPreferences = {
 };
 
 export type WindowAction = "minimize" | "maximize" | "fullscreen" | "close";
-export type DesktopEvent = "display-loaded" | "display-closed" | "update-info" | "window-state-changed" | "download-blocked";
+export type DesktopEvent = "display-loaded" | "display-closed" | "update-info" | "window-state-changed" | "download-blocked" | "access-state-changed";
 
 export type ElectronApiV1 = {
   getDisplayInfo(): Promise<IpcResult>;
@@ -28,6 +28,7 @@ export type ElectronApiV1 = {
   onUpdateInfo(callback: (payload: unknown) => void): void;
   onWindowStateChanged(callback: (payload: unknown) => void): void;
   onDownloadBlocked(callback: (payload: unknown) => void): void;
+  onAccessStateChanged(callback: (payload: unknown) => void): void;
   removeDisplayListener(eventName: DesktopEvent, callback: (payload: unknown) => void): void;
 };
 
