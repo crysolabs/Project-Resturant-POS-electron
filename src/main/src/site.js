@@ -155,7 +155,7 @@ export default class MainWindow extends BrowserWindow {
     });
   }
   isTrustedSender(event) {
-    if (event.sender !== this.webContents || event.sender.isDestroyed()) return false;
+    if (!(event.sender === this.webContents) || event.sender.isDestroyed()) return false;
     try {
       const url = new URL(event.senderFrame?.url || this.webContents.getURL());
       return url.origin === APP_ORIGIN;
@@ -163,9 +163,9 @@ export default class MainWindow extends BrowserWindow {
       return false;
     }
   }
-  ipcResult(event, handler) {
-    return async (_event, options) => {
-      if (!this.isTrustedSender(_event)) return { success: false, error: 'Untrusted IPC sender' };
+  ipcResult(channel, handler) {
+    return async (event, options) => {
+      if (!this.isTrustedSender(event)) return { success: false, error: 'Untrusted IPC sender' };
       try {
         const result = await Promise.race([
           handler(options),
@@ -173,7 +173,7 @@ export default class MainWindow extends BrowserWindow {
         ]);
         return result;
       } catch (error) {
-        logDesktopEvent('error', 'desktop.ipc.failure', { channel: event, error });
+        logDesktopEvent('error', 'desktop.ipc.failure', { channel, error });
         return { success: false, error: error.message, code: 'IPC_FAILURE' };
       }
     };
