@@ -22,6 +22,11 @@ export type HardwareCapabilities = {
 export type StationSettings = {
   stationKey: string;
   stationName: string;
+  branchId: string | null;
+  expectedBranchId: string | null;
+  branchName: string | null;
+  branchCode: string | null;
+  reassignmentLocked: boolean;
   receiptPrinterName: string | null;
   kitchenPrinterName: string | null;
   cashDrawerPrinterName: string | null;

@@ -42,6 +42,11 @@ function validatePrinterSettings(raw = {}) {
   return {
     stationKey: text(raw.stationKey, randomUUID()).slice(0, 128),
     stationName: text(raw.stationName, 'Cashier station').slice(0, 120),
+    branchId: raw.branchId ? text(raw.branchId).slice(0, 128) : null,
+    expectedBranchId: raw.expectedBranchId ? text(raw.expectedBranchId).slice(0, 128) : raw.branchId ? text(raw.branchId).slice(0, 128) : null,
+    branchName: raw.branchName ? text(raw.branchName).slice(0, 160) : null,
+    branchCode: raw.branchCode ? text(raw.branchCode).slice(0, 80) : null,
+    reassignmentLocked: raw.reassignmentLocked !== undefined ? Boolean(raw.reassignmentLocked) : true,
     receiptPrinterName: raw.receiptPrinterName ? text(raw.receiptPrinterName).slice(0, 200) : null,
     kitchenPrinterName: raw.kitchenPrinterName ? text(raw.kitchenPrinterName).slice(0, 200) : null,
     cashDrawerPrinterName: raw.cashDrawerPrinterName ? text(raw.cashDrawerPrinterName).slice(0, 200) : null,
