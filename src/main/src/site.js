@@ -24,6 +24,7 @@ import {
 import { attachRecovery } from './recovery';
 import { logDesktopEvent, safeDesktopDiagnostics } from './diagnostics.js';
 import HardwareManager from './hardware.js';
+import { desktopCompatibility } from './compatibility.js';
 
 const IPC_CHANNELS = [
   'window-control',
@@ -204,8 +205,14 @@ export default class MainWindow extends BrowserWindow {
           appName: app.getName(),
           version: app.getVersion(),
           isPackaged: app.isPackaged,
-          platform: process.platform
+          platform: process.platform,
+          updateChannel: this.main.updateChannel
         },
+        compatibility: desktopCompatibility({
+          app,
+          channel: this.main.updateChannel,
+          updatePolicy: this.updater.policy
+        }),
         update: this.updater.lastInfo
       }))
     );
@@ -215,6 +222,11 @@ export default class MainWindow extends BrowserWindow {
         success: true,
         diagnostics: safeDesktopDiagnostics({
           appOrigin: APP_ORIGIN,
+          compatibility: desktopCompatibility({
+            app,
+            channel: this.main.updateChannel,
+            updatePolicy: this.updater.policy
+          }),
           updateState: this.updater.lastInfo,
           activeWindows: [...this.activeWindows.values()]
             .filter((window) => !window.isDestroyed())

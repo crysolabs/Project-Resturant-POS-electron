@@ -8,6 +8,27 @@ export type DisplayPreferences = {
 export type WindowAction = "minimize" | "maximize" | "fullscreen" | "close";
 export type DesktopEvent = "display-loaded" | "display-closed" | "update-info" | "window-state-changed" | "download-blocked" | "access-state-changed";
 
+export type DesktopCompatibility = {
+  contractVersion: number;
+  minWebContractVersion: number;
+  appVersion: string;
+  updateChannel: "internal" | "preview" | "stable";
+  updatePolicy: {
+    forced: boolean;
+    minimumVersion: string | null;
+    installMode: "required" | "optional";
+  };
+  capabilities: Record<string, boolean>;
+};
+
+export type AppInfo = {
+  appName: string;
+  version: string;
+  isPackaged: boolean;
+  platform: string;
+  updateChannel: "internal" | "preview" | "stable";
+};
+
 export type HardwareCapabilities = {
   receiptPrinter: boolean;
   kitchenPrinter: boolean;
@@ -42,7 +63,7 @@ export type ElectronApiV1 = {
   setDisplayPreferences(preferences: Partial<DisplayPreferences>): Promise<IpcResult<{ preferences: DisplayPreferences }>>;
   windowControl(action: WindowAction): Promise<IpcResult>;
   getWindowState(): Promise<IpcResult<{ state: { isMaximized: boolean; isMinimized: boolean; isFullScreen: boolean } }>>;
-  getAppInfo(): Promise<IpcResult>;
+  getAppInfo(): Promise<IpcResult<{ app: AppInfo; compatibility: DesktopCompatibility; update: Record<string, unknown> }>>;
   getDiagnostics(): Promise<IpcResult<{ diagnostics: Record<string, unknown> }>>;
   checkForUpdates(): Promise<IpcResult>;
   downloadUpdate(): Promise<IpcResult>;

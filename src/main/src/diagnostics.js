@@ -34,7 +34,7 @@ export function logDesktopEvent(severity, event, details = {}) {
   else log.info(payload);
 }
 
-export function safeDesktopDiagnostics({ appOrigin, updateState, activeWindows = [] } = {}) {
+export function safeDesktopDiagnostics({ appOrigin, compatibility, updateState, activeWindows = [] } = {}) {
   return redact({
     generatedAt: new Date().toISOString(),
     service: 'restaurant-pos-electron',
@@ -44,6 +44,7 @@ export function safeDesktopDiagnostics({ appOrigin, updateState, activeWindows =
     osRelease: os.release(),
     arch: process.arch,
     appOrigin,
+    compatibility,
     updateState,
     displays: screen.getAllDisplays().map((display) => ({
       id: String(display.id),

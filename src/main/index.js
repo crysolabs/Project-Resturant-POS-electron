@@ -6,6 +6,7 @@ import AppTray from './src/tray';
 import Preferences from './src/preferences';
 import UpdaterManager from './src/updater';
 import { POS_SESSION_PARTITION } from './src/config';
+import { resolveUpdateChannel } from './src/compatibility.js';
 import { electronUserAgent } from './src/navigation';
 import { logDesktopEvent } from './src/diagnostics.js';
 import packageJson from '../../package.json';
@@ -14,6 +15,7 @@ class ElectronApp {
   constructor() {
     this.preview = packageJson.preview || false;
     this.devMode = !app.isPackaged;
+    this.updateChannel = resolveUpdateChannel({ preview: this.preview, packaged: app.isPackaged });
     const baseName = packageJson.build.productName || 'Electron App';
     this.appName = this.devMode
       ? baseName + ' (Dev)'
@@ -83,7 +85,8 @@ class ElectronApp {
     await this.createWindows();
     logDesktopEvent('info', 'desktop.launch.ready', {
       preview: this.preview,
-      devMode: this.devMode
+      devMode: this.devMode,
+      updateChannel: this.updateChannel
     });
     app.on('activate', async () => {
       if (BrowserWindow.getAllWindows().length === 0) await this.createWindows();
