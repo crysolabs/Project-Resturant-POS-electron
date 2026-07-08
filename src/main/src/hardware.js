@@ -15,8 +15,8 @@ function text(value, fallback = '') {
   return typeof value === 'string' ? value.slice(0, 500) : fallback;
 }
 
-function money(value, currency = 'LKR') {
-  return new Intl.NumberFormat('en-LK', { style: 'currency', currency, maximumFractionDigits: 2 }).format(Number(value) || 0);
+function money(value, currency = 'LKR', locale = 'en-LK') {
+  return new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: currency === 'JPY' ? 0 : 2 }).format(Number(value) || 0);
 }
 
 function escapeHtml(value) {
@@ -51,6 +51,9 @@ function validatePrinterSettings(raw = {}) {
     kitchenPrinterName: raw.kitchenPrinterName ? text(raw.kitchenPrinterName).slice(0, 200) : null,
     cashDrawerPrinterName: raw.cashDrawerPrinterName ? text(raw.cashDrawerPrinterName).slice(0, 200) : null,
     defaultPaper: raw.defaultPaper === '58mm' ? '58mm' : '80mm',
+    receiptLocale: raw.receiptLocale ? text(raw.receiptLocale).slice(0, 20) : 'en-LK',
+    printerCodePage: raw.printerCodePage ? text(raw.printerCodePage).slice(0, 40) : 'utf-8',
+    fiscalDeviceMode: raw.fiscalDeviceMode === 'external' ? 'external' : 'none',
     autoPrintReceipt: Boolean(raw.autoPrintReceipt),
     autoPrintKitchenTicket: Boolean(raw.autoPrintKitchenTicket),
     kitchenRoutes: raw.kitchenRoutes && typeof raw.kitchenRoutes === 'object' && !Array.isArray(raw.kitchenRoutes) ? raw.kitchenRoutes : {}
@@ -68,6 +71,7 @@ function renderReceiptHtml(payload, settings) {
   const order = payload.order;
   const restaurant = payload.restaurant || {};
   const currency = restaurant.currency || 'LKR';
+  const locale = settings.receiptLocale || restaurant.locale || 'en-LK';
   const breakdown = order.pricingBreakdown || {};
   const items = Array.isArray(order.items) ? order.items : [];
   const title = payload.copyType === 'kitchen' ? 'Kitchen Ticket' : 'Receipt';
@@ -79,20 +83,20 @@ function renderReceiptHtml(payload, settings) {
     <div class="line"></div>
     <div class="row"><span>Order</span><strong>#${escapeHtml(order.orderNumber || '-')}</strong></div>
     <div class="row"><span>Receipt</span><span>${escapeHtml(payload.id)}</span></div>
-    <div class="row"><span>Date</span><span>${escapeHtml(new Date(order.createdAt || Date.now()).toLocaleString())}</span></div>
+    <div class="row"><span>Date</span><span>${escapeHtml(new Date(order.createdAt || Date.now()).toLocaleString(locale))}</span></div>
     <div class="row"><span>Channel</span><span>${escapeHtml(order.orderChannel || '')}</span></div>
     <div class="row"><span>Payment</span><span>${escapeHtml(order.paymentMethod || '')}</span></div>
     ${order.tableNumber ? `<div class="row"><span>Table</span><span>${escapeHtml(order.area || '')} ${escapeHtml(order.tableNumber)}</span></div>` : ''}
     ${order.customerName ? `<div class="row"><span>Customer</span><span>${escapeHtml(order.customerName)}</span></div>` : ''}
     <div class="line"></div>
-    ${items.map((item) => `<div class="item"><div class="row"><span class="name">${escapeHtml(item.quantity)} x ${escapeHtml(item.menuItem?.name || item.name || 'Item')}</span><span>${escapeHtml(money((item.price || 0) * (item.quantity || 1), currency))}</span></div>${lineModifierText(item) ? `<div class="small muted">${escapeHtml(lineModifierText(item))}</div>` : ''}</div>`).join('')}
+    ${items.map((item) => `<div class="item"><div class="row"><span class="name">${escapeHtml(item.quantity)} x ${escapeHtml(item.menuItem?.name || item.name || 'Item')}</span><span>${escapeHtml(money((item.price || 0) * (item.quantity || 1), currency, locale))}</span></div>${lineModifierText(item) ? `<div class="small muted">${escapeHtml(lineModifierText(item))}</div>` : ''}</div>`).join('')}
     <div class="line"></div>
-    <div class="row"><span>Subtotal</span><span>${escapeHtml(money(breakdown.subtotal ?? order.total, currency))}</span></div>
-    <div class="row"><span>Discounts</span><span>${escapeHtml(money(order.discountTotal || 0, currency))}</span></div>
-    <div class="row"><span>Tax</span><span>${escapeHtml(money(order.taxTotal || 0, currency))}</span></div>
-    <div class="row"><span>Service</span><span>${escapeHtml(money(order.serviceChargeTotal || 0, currency))}</span></div>
+    <div class="row"><span>Subtotal</span><span>${escapeHtml(money(breakdown.subtotal ?? order.total, currency, locale))}</span></div>
+    <div class="row"><span>Discounts</span><span>${escapeHtml(money(order.discountTotal || 0, currency, locale))}</span></div>
+    <div class="row"><span>${escapeHtml(restaurant.taxLabel || 'Tax')}</span><span>${escapeHtml(money(order.taxTotal || 0, currency, locale))}</span></div>
+    <div class="row"><span>Service</span><span>${escapeHtml(money(order.serviceChargeTotal || 0, currency, locale))}</span></div>
     <div class="line"></div>
-    <div class="row total"><span>Total</span><span>${escapeHtml(money(order.total, currency))}</span></div>
+    <div class="row total"><span>Total</span><span>${escapeHtml(money(order.total, currency, locale))}</span></div>
     <div class="line"></div>
     <div class="center small qr">Verify: ${escapeHtml(verification)}</div>
     <p class="center muted">${escapeHtml(restaurant.footer || settings.receiptFooter || 'Thank you.')}</p>

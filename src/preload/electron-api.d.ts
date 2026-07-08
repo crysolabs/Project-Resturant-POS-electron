@@ -52,6 +52,9 @@ export type StationSettings = {
   kitchenPrinterName: string | null;
   cashDrawerPrinterName: string | null;
   defaultPaper: "58mm" | "80mm";
+  receiptLocale: string;
+  printerCodePage: string;
+  fiscalDeviceMode: "none" | "external";
   autoPrintReceipt: boolean;
   autoPrintKitchenTicket: boolean;
   kitchenRoutes: Record<string, string>;
