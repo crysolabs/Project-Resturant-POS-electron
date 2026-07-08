@@ -170,7 +170,11 @@ export default class HardwareManager {
   async openCashDrawer(raw = {}) {
     const settings = this.settings();
     if (!settings.cashDrawerPrinterName && !settings.receiptPrinterName) throw new Error('No drawer-capable printer configured');
-    return this.testPrint({ ...raw, copyType: 'merchant' });
+    const reason = text(raw.reason).trim();
+    if (!reason) throw new Error('Drawer open reason is required');
+    const job = await this.testPrint({ ...raw, copyType: 'merchant' });
+    this.record({ ...job, kind: 'cash-drawer', reason, cashSessionId: text(raw.cashSessionId), staffProfileId: text(raw.staffProfileId), updatedAt: now() });
+    return { ...job, reason, cashSessionId: text(raw.cashSessionId), staffProfileId: text(raw.staffProfileId) };
   }
 
   getHistory() {
